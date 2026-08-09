@@ -52,6 +52,7 @@ import enrollmentRoutes   from './routes/enrollment.routes'
 import submissionsRoutes  from './routes/submissions.routes'
 import plagiarismRoutes   from './routes/plagiarism.routes'
 import { createSocketGateway } from './gateway/socket.gateway'
+import classConnectRoutes from './routes/class-connect.routes'
 
 // ── Sentry (optional — only initialised if DSN is set) ────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,7 +88,10 @@ app.use(helmet({
 }))
 app.use(securityHeaders)
 
-const allowedOrigins = env.NODE_ENV === 'development' ? true : env.FRONTEND_URL
+const allowedOrigins = env.NODE_ENV === 'development'
+  ? true
+  : [env.FRONTEND_URL, env.SCHOLARCRAFT_URL]
+
 app.use(cors({
   origin:         allowedOrigins,
   credentials:    true,
@@ -212,6 +216,7 @@ app.use('/api/reports',      reportsRoutes)
 app.use('/api/insights',     insightsRoutes)
 app.use('/api/billing',      billingRoutes)
 app.use('/api/student',      studentRoutes)
+app.use('/api',              classConnectRoutes)
 app.use('/api/enrollments',  enrollmentRoutes)
 app.use('/api/submissions',  submissionsRoutes)
 app.use('/api/plagiarism',   plagiarismRoutes)

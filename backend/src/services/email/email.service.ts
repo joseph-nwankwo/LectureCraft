@@ -135,6 +135,27 @@ export const emailService = {
     })
   },
 
+  async sendStudentJoined(opts: {
+    to: string
+    lecturerName: string
+    studentName: string
+    courseTitle: string
+    courseCode: string | null
+    courseUrl: string
+  }) {
+    await send({
+      to: opts.to,
+      subject: `${opts.studentName} joined your class — ${opts.courseTitle}`,
+      html: baseTemplate(`
+        <h2>A student joined your class</h2>
+        <p>Hi ${opts.lecturerName},</p>
+        <p><strong>${opts.studentName}</strong> just joined your class <strong>${opts.courseTitle}</strong>${opts.courseCode ? ` (${opts.courseCode})` : ''} via Class Connect on ScholarCraft.</p>
+        <a href="${opts.courseUrl}" class="btn">View Student List</a>
+        <p>If you don't recognise this student, you can regenerate the join code from your course settings to prevent further unauthorised joins.</p>
+      `),
+    })
+  },
+
   async sendWelcome(to: string, name: string, institutionName: string) {
     await send({
       to,

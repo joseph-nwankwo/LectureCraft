@@ -2,6 +2,9 @@ import type { Request, Response } from 'express'
 import { asyncHandler } from '../utils/asyncHandler'
 import { AppError } from '../utils/errors'
 import { prisma } from '../config/database'
+import { notificationService } from '../services/notification/notification.service'
+import { emailService } from '../services/email/email.service'
+import { env } from '../config/env'
 
 const qs = (v: unknown): string | undefined =>
   typeof v === 'string' ? v : Array.isArray(v) ? String(v[0]) : undefined
@@ -169,7 +172,10 @@ export const coursesController = {
     const studentId = req.user!.userId
     const code      = String(req.params.code).toUpperCase()
 
-    const course = await lc().findUnique({ where: { enrollCode: code } })
+    const course = await lc().findUnique({
+      where: { enrollCode: code },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    })
     if (!course) throw AppError.notFound('No course found with that code')
     if (course.createdBy === studentId) throw AppError.badRequest('You cannot join your own course')
 
@@ -185,9 +191,34 @@ export const coursesController = {
       return res.json({ status: 'success', enrollment: updated })
     }
 
-    const enrollment = await lce().create({
-      data: { lecturerCourseId: course.id, studentId },
+    const [enrollment, student] = await Promise.all([
+      lce().create({ data: { lecturerCourseId: course.id, studentId } }),
+      prisma.user.findUnique({ where: { id: studentId }, select: { name: true } }),
+    ])
+
+    // Fire-and-forget — don't block the join response
+    const studentName = student?.name ?? 'A student'
+    const lecturer    = course.user as { id: string; name: string; email: string }
+    const courseUrl   = `${env.FRONTEND_URL}/courses/${course.id}`
+
+    void notificationService.create({
+      userId:   lecturer.id,
+      type:     'INFO',
+      category: 'SYSTEM',
+      title:    'New student joined your class',
+      message:  `${studentName} joined ${course.title} via Class Connect`,
+      actionUrl: courseUrl,
     })
+
+    void emailService.sendStudentJoined({
+      to:          lecturer.email,
+      lecturerName: lecturer.name,
+      studentName,
+      courseTitle: course.title as string,
+      courseCode:  course.code as string | null,
+      courseUrl,
+    })
+
     res.status(201).json({ status: 'success', enrollment })
   }),
 

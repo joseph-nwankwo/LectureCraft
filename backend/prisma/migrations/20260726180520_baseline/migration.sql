@@ -2668,14 +2668,3 @@ ALTER TABLE "thesis_reference_documents" ADD CONSTRAINT "thesis_reference_docume
 
 -- AddForeignKey
 ALTER TABLE "thesis_reference_chunks" ADD CONSTRAINT "thesis_reference_chunks_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "thesis_reference_documents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
-┌─────────────────────────────────────────────────────────┐
-│  Update available 6.19.3 -> 7.9.0                       │
-│                                                         │
-│  This is a major update - please follow the guide at    │
-│  https://pris.ly/d/major-version-upgrade                │
-│                                                         │
-│  Run the following to update                            │
-│    npm i --save-dev prisma@latest                       │
-│    npm i @prisma/client@latest                          │
-└─────────────────────────────────────────────────────────┘
