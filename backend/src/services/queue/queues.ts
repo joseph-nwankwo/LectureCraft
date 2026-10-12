@@ -1,7 +1,8 @@
 import { Queue } from 'bullmq'
 import { getBullMQConnection } from '../../config/redis'
 
-const connection = { ...getBullMQConnection(), lazyConnect: true, retryStrategy: () => null }
+// retryStrategy null = no reconnect; enableOfflineQueue false = fail fast when Redis is down
+const connection = { ...getBullMQConnection(), lazyConnect: true, retryStrategy: () => null, enableOfflineQueue: false }
 
 export const aiQueue = new Queue('ai-generation', {
   connection,

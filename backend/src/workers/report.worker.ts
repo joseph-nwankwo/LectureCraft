@@ -8,10 +8,16 @@ const POLL_MS = 60_000 // check every minute
 async function dispatchDueReports() {
   const now = new Date()
 
-  const due = await prisma.scheduledReport.findMany({
-    where: { isActive: true, nextRunAt: { lte: now } },
-    include: { creator: { select: { name: true, email: true } } },
-  })
+  let due: Awaited<ReturnType<typeof prisma.scheduledReport.findMany>>
+  try {
+    due = await prisma.scheduledReport.findMany({
+      where: { isActive: true, nextRunAt: { lte: now } },
+      include: { creator: { select: { name: true, email: true } } },
+    })
+  } catch (err) {
+    logger.warn('[report-worker] DB unavailable, skipping poll', { code: (err as { code?: string }).code })
+    return
+  }
 
   if (due.length === 0) return
 
@@ -19,7 +25,6 @@ async function dispatchDueReports() {
 
   for (const report of due) {
     try {
-      // Determine date range based on frequency
       const rangeMs: Record<string, number> = {
         DAILY: 1, WEEKLY: 7, MONTHLY: 30, SEMESTER: 120, ACADEMIC_SESSION: 365,
       }
@@ -34,7 +39,6 @@ async function dispatchDueReports() {
         format: fmt,
       })
 
-      // Send to each recipient
       const { emailService } = await import('../services/email/email.service')
       for (const recipient of report.recipients) {
         await emailService.sendScheduledReport({
