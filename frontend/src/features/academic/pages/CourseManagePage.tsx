@@ -8,15 +8,17 @@ import {
   courseApi, type CourseAssignment, type CourseOutcome, type TeachingSchedule,
   type CourseMaterial, type BloomLevel, type AssignRole, type DayOfWeek, type WeekPattern,
 } from '@/lib/api/academic.api'
-import { useAsync, useErrorMsg } from '../hooks/useAcademic'
+import { useAsync, getErrorMsg } from '../hooks/useAcademic'
 import { AcademicDialog } from '../components/AcademicDialog'
 import { Button } from '@/components/design-system/buttons/Button'
 import { TextField } from '@/components/design-system/inputs/TextField'
 import { Alert } from '@/components/design-system/feedback/Alert'
 import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/cards/EmptyState'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 type Tab = 'overview' | 'assignments' | 'outcomes' | 'schedule' | 'materials'
 
@@ -56,7 +58,7 @@ export default function CourseManagePage() {
     if (!outcomeForm.outcomeCode || !outcomeForm.description) { setOutcomeErr('Code and description required'); return }
     setOutcomeSaving(true); setOutcomeErr('')
     try { await courseApi.upsertOutcome(id!, outcomeForm); setOutcomeDialog(false); reload() }
-    catch (err) { setOutcomeErr(useErrorMsg(err)) }
+    catch (err) { setOutcomeErr(getErrorMsg(err)) }
     finally { setOutcomeSaving(false) }
   }
 
@@ -70,7 +72,7 @@ export default function CourseManagePage() {
     e.preventDefault()
     setSchedSaving(true); setSchedErr('')
     try { await courseApi.addSchedule(id!, schedForm); setSchedDialog(false); reload() }
-    catch (err) { setSchedErr(useErrorMsg(err)) }
+    catch (err) { setSchedErr(getErrorMsg(err)) }
     finally { setSchedSaving(false) }
   }
 
@@ -85,13 +87,13 @@ export default function CourseManagePage() {
     if (!assignForm.lecturerId || !assignForm.academicSessionId) { setAssignErr('Lecturer and session are required'); return }
     setAssignSaving(true); setAssignErr('')
     try { await courseApi.assignLecturer(id!, assignForm); setAssignDialog(false); reload() }
-    catch (err) { setAssignErr(useErrorMsg(err)) }
+    catch (err) { setAssignErr(getErrorMsg(err)) }
     finally { setAssignSaving(false) }
   }
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
         <Skeleton className="h-8 w-80 rounded-lg" />
         <Skeleton className="h-48 rounded-xl" />
       </div>
@@ -100,7 +102,7 @@ export default function CourseManagePage() {
 
   if (error || !course) {
     return (
-      <div className="mx-auto max-w-5xl p-6">
+      <div className="mx-auto max-w-5xl p-4 sm:p-6">
         <Alert variant="error" description={error ?? 'Course not found'} />
         <Button variant="ghost" leftIcon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate(ROUTES.ACADEMIC_COURSES)} className="mt-4">Back to courses</Button>
       </div>
@@ -113,28 +115,33 @@ export default function CourseManagePage() {
   const materials: CourseMaterial[]      = res?.data?.materials ?? []
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex items-start gap-4">
         <Button variant="ghost" size="sm" leftIcon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate(ROUTES.ACADEMIC_COURSES)} />
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-sm font-medium text-primary">{course.code}</span>
-            <Badge variant={course.active ? 'success' : 'default'} size="sm">{course.active ? 'Active' : 'Inactive'}</Badge>
-            <Badge variant="default" size="sm">{course.level}</Badge>
-            <Badge variant={course.courseType === 'COMPULSORY' ? 'error' : 'default'} size="sm">{course.courseType}</Badge>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-1">{course.title}</h1>
-          <p className="text-sm text-muted-foreground">{course.department?.name} · {course.creditUnits} credit units · {course.deliveryMode.replace('_', ' ')}</p>
+          <PageHeader
+            title={course.title}
+            description={<>{course.department?.name} · {course.creditUnits} credit units · {course.deliveryMode.replace('_', ' ')}</>}
+            icon={<BookOpen className="h-5 w-5" />}
+            actions={(
+              <div className="flex flex-wrap gap-2">
+                <span className="font-mono text-sm font-medium text-primary">{course.code}</span>
+                <Badge variant={course.active ? 'success' : 'default'} size="sm">{course.active ? 'Active' : 'Inactive'}</Badge>
+                <Badge variant="default" size="sm">{course.level}</Badge>
+                <Badge variant={course.courseType === 'COMPULSORY' ? 'error' : 'default'} size="sm">{course.courseType}</Badge>
+              </div>
+            )}
+          />
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 overflow-x-auto border-b border-border" role="tablist" aria-label="Course management sections">
         {TABS.map(({ id: tid, label, icon: Icon }) => (
-          <button key={tid} onClick={() => setTab(tid)}
+          <button key={tid} type="button" role="tab" aria-selected={tab === tid} onClick={() => setTab(tid)}
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
+              'flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               tab === tid ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
@@ -183,20 +190,27 @@ export default function CourseManagePage() {
             <Button variant="primary" size="sm" leftIcon={<UserPlus className="h-4 w-4" />} onClick={() => setAssignDialog(true)}>Assign Lecturer</Button>
           </div>
           {assignments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No lecturers assigned to this course yet.</p>
+            <EmptyState
+              icon={<Users className="h-6 w-6" />}
+              title="No lecturers assigned"
+              description="Assign a lecturer to this course for the selected academic session."
+              action={{ label: 'Assign Lecturer', onClick: () => setAssignDialog(true) }}
+              size="sm"
+            />
           ) : (
             <div className="space-y-2">
               {assignments.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-                  <div>
+                <div key={a.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <p className="font-medium text-sm">{a.lecturer?.name ?? a.lecturerId}</p>
-                    <p className="text-xs text-muted-foreground">{a.lecturer?.email} · {a.academicSession?.name} {a.semester?.name && `· ${a.semester.name}`}</p>
+                    <p className="truncate text-xs text-muted-foreground">{a.lecturer?.email} · {a.academicSession?.name} {a.semester?.name && `· ${a.semester.name}`}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
                     <Badge variant={a.role === 'LEAD' ? 'success' : 'default'} size="sm">{a.role}</Badge>
                     <Button variant="ghost" size="sm" leftIcon={<Trash2 className="h-4 w-4" />}
                       onClick={async () => { await courseApi.removeAssignment(id!, a.id); reload() }}
                       className="text-destructive hover:text-destructive"
+                      aria-label={`Remove ${a.lecturer?.name ?? 'lecturer'} assignment`}
                     />
                   </div>
                 </div>

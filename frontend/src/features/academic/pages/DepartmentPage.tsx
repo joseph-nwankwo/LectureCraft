@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { BookOpen, Plus, Pencil, Trash2, Filter } from 'lucide-react'
 import { departmentApi, facultyApi, type Department, type Faculty } from '@/lib/api/academic.api'
-import { useAsync, useErrorMsg } from '../hooks/useAcademic'
+import { useAsync, getErrorMsg } from '../hooks/useAcademic'
 import { AcademicDialog } from '../components/AcademicDialog'
 import { Button } from '@/components/design-system/buttons/Button'
 import { TextField } from '@/components/design-system/inputs/TextField'
@@ -10,6 +10,7 @@ import { Badge } from '@/components/design-system/display/Badge'
 import { EmptyState } from '@/components/design-system/cards/EmptyState'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 import { DataTable, type Column } from '@/components/design-system/data/DataTable'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 interface FormState { facultyId: string; name: string; code: string; abbreviation: string; description: string }
 const EMPTY: FormState = { facultyId: '', name: '', code: '', abbreviation: '', description: '' }
@@ -89,7 +90,7 @@ export default function DepartmentPage() {
       if (dialog?.mode === 'create') await departmentApi.create({ ...form, code: form.code.toUpperCase() })
       else await departmentApi.update(dialog!.dept!.id, { ...form, code: form.code.toUpperCase() })
       setDialog(null); reload()
-    } catch (err) { setFormErr(useErrorMsg(err)) }
+    } catch (err) { setFormErr(getErrorMsg(err)) }
     finally { setSaving(false) }
   }
 
@@ -110,17 +111,13 @@ export default function DepartmentPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            Departments
-          </h1>
-          <p className="text-sm text-muted-foreground">{deptData?.total ?? 0} departments</p>
-        </div>
-        <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Department</Button>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Departments"
+        description={`${deptData?.total ?? 0} departments`}
+        icon={<BookOpen className="h-5 w-5" />}
+        actions={<Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Department</Button>}
+      />
 
       <div className="flex flex-wrap gap-3">
         <TextField placeholder="Search departments…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />

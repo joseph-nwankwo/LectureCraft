@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { CalendarDays, Plus, Pencil, Trash2, Star } from 'lucide-react'
 import { sessionApi, type AcademicSession } from '@/lib/api/academic.api'
-import { useAsync, useErrorMsg } from '../hooks/useAcademic'
+import { useAsync, getErrorMsg } from '../hooks/useAcademic'
 import { AcademicDialog } from '../components/AcademicDialog'
 import { Button } from '@/components/design-system/buttons/Button'
 import { TextField } from '@/components/design-system/inputs/TextField'
@@ -10,6 +10,7 @@ import { Badge } from '@/components/design-system/display/Badge'
 import { EmptyState } from '@/components/design-system/cards/EmptyState'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 interface FormState { name: string; startDate: string; endDate: string; current: boolean }
 const EMPTY: FormState = { name: '', startDate: '', endDate: '', current: false }
@@ -81,7 +82,7 @@ export default function AcademicSessionPage() {
       if (dialog?.mode === 'create') await sessionApi.create(form)
       else await sessionApi.update(dialog!.session!.id, form)
       setDialog(null); reload()
-    } catch (err) { setFormErr(useErrorMsg(err)) }
+    } catch (err) { setFormErr(getErrorMsg(err)) }
     finally { setSaving(false) }
   }
 
@@ -93,17 +94,13 @@ export default function AcademicSessionPage() {
   const list: AcademicSession[] = sessions?.data ?? []
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-primary" />
-            Academic Sessions
-          </h1>
-          <p className="text-sm text-muted-foreground">{list.length} sessions configured</p>
-        </div>
-        <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>New Session</Button>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Academic Sessions"
+        description={`${list.length} sessions configured`}
+        icon={<CalendarDays className="h-5 w-5" />}
+        actions={<Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>New Session</Button>}
+      />
 
       {error && <Alert variant="error" description={error} />}
 

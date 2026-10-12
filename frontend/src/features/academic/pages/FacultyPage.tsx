@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Building2, Plus, Pencil, Trash2, Users, BookOpen, GraduationCap } from 'lucide-react'
 import { facultyApi, type Faculty } from '@/lib/api/academic.api'
-import { useAsync, useErrorMsg } from '../hooks/useAcademic'
+import { useAsync, getErrorMsg } from '../hooks/useAcademic'
 import { AcademicDialog } from '../components/AcademicDialog'
 import { Button } from '@/components/design-system/buttons/Button'
 import { TextField } from '@/components/design-system/inputs/TextField'
@@ -9,6 +9,7 @@ import { Alert } from '@/components/design-system/feedback/Alert'
 import { Badge } from '@/components/design-system/display/Badge'
 import { EmptyState } from '@/components/design-system/cards/EmptyState'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 interface FormState { name: string; code: string; abbreviation: string; description: string }
 const EMPTY_FORM: FormState = { name: '', code: '', abbreviation: '', description: '' }
@@ -85,7 +86,7 @@ export default function FacultyPage() {
       else await facultyApi.update(dialog!.faculty!.id, { ...form, code: form.code.toUpperCase() })
       setDialog(null)
       reload()
-    } catch (err) { setFormErr(useErrorMsg(err)) }
+    } catch (err) { setFormErr(getErrorMsg(err)) }
     finally { setSaving(false) }
   }
 
@@ -98,18 +99,13 @@ export default function FacultyPage() {
   const faculties = data?.data ?? []
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary" />
-            Faculties
-          </h1>
-          <p className="text-sm text-muted-foreground">{data?.total ?? 0} faculties in your institution</p>
-        </div>
-        <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Faculty</Button>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Faculties"
+        description={`${data?.total ?? 0} faculties in your institution`}
+        icon={<Building2 className="h-5 w-5" />}
+        actions={<Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Faculty</Button>}
+      />
 
       {/* Search */}
       <TextField

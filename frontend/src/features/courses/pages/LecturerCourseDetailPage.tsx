@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, ClipboardList, Users, Plus, Trash2,
@@ -9,7 +9,7 @@ import {
 import { coursesApi, type Course, type CourseDocument, type CourseAssessment, type Announcement, type ClassSession, type Poll, type ClassAssignment, type AssignmentSubmission, type AttendanceRecord, type DiscussionThread, type DiscussionReply } from '@/lib/api/courses.api'
 import { documentsApi, type Document } from '@/lib/api/documents.api'
 import { assessmentApi, type Assessment } from '@/lib/api/assessment.api'
-import { ROUTES, buildRoute } from '@/constants/routes'
+import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
 
 type Tab = 'documents' | 'assessments' | 'students' | 'announcements' | 'schedule' | 'polls' | 'assignments' | 'attendance' | 'discussions'
@@ -274,7 +274,7 @@ export default function LecturerCourseDetailPage() {
   const [threadBody, setThreadBody]           = useState('')
   const [savingThread, setSavingThread]       = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!id) return
     setLoading(true)
     try {
@@ -304,7 +304,7 @@ export default function LecturerCourseDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   async function handleCreateThread() {
     if (!id || !threadTitle.trim() || !threadBody.trim()) return
@@ -500,7 +500,7 @@ export default function LecturerCourseDetailPage() {
     finally { setSavingAttend(false) }
   }
 
-  useEffect(() => { void load() }, [id])
+  useEffect(() => { void load() }, [load])
 
   async function handleRemoveDoc(docId: string) {
     if (!id || !confirm('Remove this document from the course?')) return
@@ -836,7 +836,7 @@ export default function LecturerCourseDetailPage() {
                         className="flex-1 border border-input rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
                       <button
                         type="button"
-                        onClick={() => setSessionMeetLink(`https://meet.jit.si/LectureCraft-${Math.random().toString(36).slice(2, 10)}`)}
+                        onClick={() => setSessionMeetLink(`https://meet.jit.si/LectureSuite-${Math.random().toString(36).slice(2, 10)}`)}
                         className="shrink-0 flex items-center gap-1.5 text-xs border border-primary text-primary px-3 py-2 rounded-lg hover:bg-primary/5 transition-colors whitespace-nowrap">
                         <Video className="h-3.5 w-3.5" /> Generate Jitsi room
                       </button>

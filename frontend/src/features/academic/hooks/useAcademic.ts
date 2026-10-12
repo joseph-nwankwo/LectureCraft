@@ -26,7 +26,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   return { ...state, reload: run }
 }
 
-export function useErrorMsg(err: unknown): string {
+export function getErrorMsg(err: unknown): string {
   return (err as { response?: { data?: { message?: string } } })?.response?.data?.message
     ?? (err instanceof Error ? err.message : 'An error occurred')
 }

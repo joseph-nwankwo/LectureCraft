@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Clock, Plus, Pencil, Trash2, Star } from 'lucide-react'
 import { sessionApi, type Semester, type AcademicSession } from '@/lib/api/academic.api'
-import { useAsync, useErrorMsg } from '../hooks/useAcademic'
+import { useAsync, getErrorMsg } from '../hooks/useAcademic'
 import { AcademicDialog } from '../components/AcademicDialog'
 import { Button } from '@/components/design-system/buttons/Button'
 import { TextField } from '@/components/design-system/inputs/TextField'
@@ -10,6 +10,7 @@ import { Badge } from '@/components/design-system/display/Badge'
 import { EmptyState } from '@/components/design-system/cards/EmptyState'
 import { DataTable, type Column } from '@/components/design-system/data/DataTable'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 interface FormState {
   academicSessionId: string; name: string; number: string
@@ -106,7 +107,7 @@ export default function SemesterPage() {
       if (dialog?.mode === 'create') await sessionApi.createSemester(payload)
       else await sessionApi.updateSemester(dialog!.sem!.id, payload)
       setDialog(null); reload()
-    } catch (err) { setFormErr(useErrorMsg(err)) }
+    } catch (err) { setFormErr(getErrorMsg(err)) }
     finally { setSaving(false) }
   }
 
@@ -126,17 +127,13 @@ export default function SemesterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Clock className="h-6 w-6 text-primary" />
-            Semesters
-          </h1>
-          <p className="text-sm text-muted-foreground">{semList.length} semesters</p>
-        </div>
-        <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Semester</Button>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Semesters"
+        description={`${semList.length} semesters`}
+        icon={<Clock className="h-5 w-5" />}
+        actions={<Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Semester</Button>}
+      />
 
       <div className="flex items-center gap-3">
         <select value={sessionFilter} onChange={(e) => setSessionFilter(e.target.value)}

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { GraduationCap, Plus, Pencil, Trash2 } from 'lucide-react'
 import { programmeApi, departmentApi, type Programme, type Department } from '@/lib/api/academic.api'
-import { useAsync, useErrorMsg } from '../hooks/useAcademic'
+import { useAsync, getErrorMsg } from '../hooks/useAcademic'
 import { AcademicDialog } from '../components/AcademicDialog'
 import { Button } from '@/components/design-system/buttons/Button'
 import { TextField } from '@/components/design-system/inputs/TextField'
@@ -10,6 +10,7 @@ import { Badge } from '@/components/design-system/display/Badge'
 import { EmptyState } from '@/components/design-system/cards/EmptyState'
 import { DataTable, type Column } from '@/components/design-system/data/DataTable'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 type StudyMode      = 'FULL_TIME' | 'PART_TIME' | 'DISTANCE' | 'BLENDED'
 type AccreditStatus = 'PENDING' | 'ACCREDITED' | 'PROVISIONAL' | 'REVOKED'
@@ -115,7 +116,7 @@ export default function ProgrammePage() {
       if (dialog?.mode === 'create') await programmeApi.create(payload)
       else await programmeApi.update(dialog!.prog!.id, payload)
       setDialog(null); reload()
-    } catch (err) { setFormErr(useErrorMsg(err)) }
+    } catch (err) { setFormErr(getErrorMsg(err)) }
     finally { setSaving(false) }
   }
 
@@ -135,17 +136,13 @@ export default function ProgrammePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <GraduationCap className="h-6 w-6 text-primary" />
-            Programmes
-          </h1>
-          <p className="text-sm text-muted-foreground">{data?.total ?? 0} academic programmes</p>
-        </div>
-        <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Programme</Button>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Programmes"
+        description={`${data?.total ?? 0} academic programmes`}
+        icon={<GraduationCap className="h-5 w-5" />}
+        actions={<Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>Add Programme</Button>}
+      />
 
       <div className="flex flex-wrap gap-3">
         <TextField placeholder="Search programmes…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
