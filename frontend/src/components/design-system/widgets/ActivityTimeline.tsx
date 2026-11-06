@@ -43,7 +43,7 @@ const activityConfig: Record<ActivityType, { icon: ReactNode; color: string; bg:
   delete_document: { icon: <Trash2 className="h-3.5 w-3.5" />,     color: 'text-error',   bg: 'bg-error-muted' },
   generate_ai:     { icon: <Sparkles className="h-3.5 w-3.5" />,   color: 'text-primary', bg: 'bg-primary/10' },
   export:          { icon: <Download className="h-3.5 w-3.5" />,   color: 'text-warning', bg: 'bg-warning-muted' },
-  create_course:   { icon: <BookOpen className="h-3.5 w-3.5" />,   color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+  create_course:   { icon: <BookOpen className="h-3.5 w-3.5" />,   color: 'text-primary',    bg: 'bg-accent' },
   login:           { icon: <User className="h-3.5 w-3.5" />,       color: 'text-muted-foreground', bg: 'bg-muted' },
   custom:          { icon: <FileText className="h-3.5 w-3.5" />,   color: 'text-muted-foreground', bg: 'bg-muted' },
 }

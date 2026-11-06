@@ -51,7 +51,7 @@ export default function CouponsPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <Tag className="w-6 h-6 text-indigo-600" />
+        <Tag className="w-6 h-6 text-primary" />
         <h1 className="text-2xl font-bold text-gray-900">Coupons</h1>
       </div>
 
@@ -60,24 +60,24 @@ export default function CouponsPage() {
         <h3 className="text-sm font-semibold text-gray-700 mb-4">Create Coupon</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-            placeholder="Code (e.g. LAUNCH50)" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            placeholder="Code (e.g. LAUNCH50)" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           <select value={form.discountType} onChange={(e) => setForm({ ...form, discountType: e.target.value as 'PERCENTAGE' | 'FIXED_AMOUNT' })}
-            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
             <option value="PERCENTAGE">Percentage (%)</option>
             <option value="FIXED_AMOUNT">Fixed Amount</option>
           </select>
           <input value={form.discountValue} onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
             placeholder={form.discountType === 'PERCENTAGE' ? 'Value (e.g. 20)' : 'Amount (e.g. 10)'}
-            type="number" min="0" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            type="number" min="0" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           <input value={form.expirationDate} onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
-            type="date" placeholder="Expiration date" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            type="date" placeholder="Expiration date" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           <input value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })}
-            type="number" min="1" placeholder="Usage limit (optional)" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            type="number" min="1" placeholder="Usage limit (optional)" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Description" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            placeholder="Description" className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
         </div>
         <button onClick={handleCreate} disabled={creating || !form.code || !form.discountValue}
-          className="mt-3 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+          className="mt-3 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
           <Plus className="w-4 h-4" /> {creating ? 'Creating...' : 'Create Coupon'}
         </button>
       </div>

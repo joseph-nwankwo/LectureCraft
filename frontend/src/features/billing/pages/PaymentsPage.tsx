@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { CreditCard } from 'lucide-react'
 import { billingApi } from '@/lib/api/billing.api'
 import { formatDate } from '@/lib/utils/format'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
+import { Button } from '@/components/design-system/buttons/Button'
 
 interface Payment {
   id: string; amount: string; currency: string; status: string
@@ -9,12 +14,8 @@ interface Payment {
   createdAt: string; invoice?: { invoiceNumber: string }
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  SUCCEEDED: 'bg-green-50 text-green-700',
-  PENDING: 'bg-yellow-50 text-yellow-700',
-  FAILED: 'bg-red-50 text-red-700',
-  REFUNDED: 'bg-purple-50 text-purple-700',
-  CANCELLED: 'bg-gray-100 text-gray-500',
+const STATUS_VARIANTS: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral'> = {
+  SUCCEEDED: 'success', PENDING: 'warning', FAILED: 'error', REFUNDED: 'info', CANCELLED: 'neutral',
 }
 
 export default function PaymentsPage() {
@@ -31,38 +32,34 @@ export default function PaymentsPage() {
   }, [page])
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <CreditCard className="w-6 h-6 text-indigo-600" />
-        <h1 className="text-2xl font-bold text-gray-900">Payment History</h1>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Payment History" description="Review completed, pending, and failed billing transactions." icon={<CreditCard className="h-5 w-5" />} className="mb-8" />
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[700px] text-sm">
+          <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th className="text-left p-4 font-semibold text-gray-600">Date</th>
-              <th className="text-left p-4 font-semibold text-gray-600">Invoice</th>
-              <th className="text-left p-4 font-semibold text-gray-600">Provider</th>
-              <th className="text-right p-4 font-semibold text-gray-600">Amount</th>
-              <th className="text-center p-4 font-semibold text-gray-600">Status</th>
+              <th className="p-4 text-left font-semibold text-muted-foreground">Date</th>
+              <th className="p-4 text-left font-semibold text-muted-foreground">Invoice</th>
+              <th className="p-4 text-left font-semibold text-muted-foreground">Provider</th>
+              <th className="p-4 text-right font-semibold text-muted-foreground">Amount</th>
+              <th className="p-4 text-center font-semibold text-muted-foreground">Status</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={5} className="p-8"><Skeleton className="mx-auto h-6 w-40" /></td></tr>
             ) : payments.length === 0 ? (
-              <tr><td colSpan={5} className="p-8 text-center text-gray-400">No payments yet</td></tr>
+              <tr><td colSpan={5} className="p-4"><EmptyState icon={<CreditCard className="h-6 w-6" />} title="No payments yet" description="Payment activity will appear here." size="sm" /></td></tr>
             ) : payments.map((pmt) => (
-              <tr key={pmt.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="p-4 text-gray-600">{formatDate(pmt.createdAt)}</td>
-                <td className="p-4 font-mono text-gray-700 text-xs">{pmt.invoice?.invoiceNumber ?? '—'}</td>
-                <td className="p-4 text-gray-600 capitalize">{pmt.paymentProvider.toLowerCase()}</td>
-                <td className="p-4 text-right font-medium">{pmt.currency} {Number(pmt.amount).toFixed(2)}</td>
+              <tr key={pmt.id} className="border-b border-border hover:bg-muted/30">
+                <td className="p-4 text-muted-foreground">{formatDate(pmt.createdAt)}</td>
+                <td className="p-4 font-mono text-xs text-foreground">{pmt.invoice?.invoiceNumber ?? '—'}</td>
+                <td className="p-4 capitalize text-muted-foreground">{pmt.paymentProvider.toLowerCase()}</td>
+                <td className="p-4 text-right font-medium text-foreground">{pmt.currency} {Number(pmt.amount).toFixed(2)}</td>
                 <td className="p-4 text-center">
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_STYLES[pmt.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {pmt.status}
-                  </span>
+                  <Badge variant={STATUS_VARIANTS[pmt.status] ?? 'neutral'}>{pmt.status}</Badge>
                 </td>
               </tr>
             ))}
@@ -70,16 +67,15 @@ export default function PaymentsPage() {
         </table>
 
         {total > 20 && (
-          <div className="p-4 flex justify-between items-center border-t border-gray-100">
-            <span className="text-sm text-gray-500">{total} payments total</span>
+          <div className="flex items-center justify-between border-t border-border p-4">
+            <span className="text-sm text-muted-foreground">{total} payments total</span>
             <div className="flex gap-2">
-              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-40">Prev</button>
-              <button disabled={page * 20 >= total} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-40">Next</button>
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Prev</Button>
+              <Button variant="outline" size="sm" disabled={page * 20 >= total} onClick={() => setPage(p => p + 1)}>Next</Button>
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )

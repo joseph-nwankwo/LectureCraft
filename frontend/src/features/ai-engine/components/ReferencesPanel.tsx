@@ -23,7 +23,7 @@ async function searchCrossRef(query: string, yearFilter: YearFilter): Promise<Re
       ? `&filter=from-pub-date:${new Date().getFullYear() - 2}`
       : ''
   const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=8&sort=relevance${filterParam}&select=title,author,published,DOI,container-title,volume,issue,page,is-referenced-by-count`
-  const res = await fetch(url, { headers: { 'User-Agent': 'LectureCraft (mailto:support@lecturecraft.ai)' } })
+  const res = await fetch(url, { headers: { 'User-Agent': 'LectureSuite (mailto:support@lecturecraft.ai)' } })
   if (!res.ok) throw new Error('CrossRef request failed')
   const data = await res.json() as { message: { items: CrossRefItem[] } }
   return data.message.items.map((p): RefResult => {

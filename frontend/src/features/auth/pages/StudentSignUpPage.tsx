@@ -49,7 +49,7 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function StudentSignUpPage() {
-  useEffect(() => { document.title = 'Student Sign Up — LectureCraft' }, [])
+  useEffect(() => { document.title = 'Student Sign Up — LectureSuite' }, [])
 
   const { login }   = useAuth()
   const navigate    = useNavigate()
@@ -103,7 +103,7 @@ export default function StudentSignUpPage() {
         name:          `${form.firstName.trim()} ${form.lastName.trim()}`,
         email:         form.email,
         password:      form.password,
-        role:          'STUDENT',
+        role:          'student',
         institutionId: form.institutionId,
         matricNumber:  form.matricNumber.trim(),
       })
@@ -120,12 +120,12 @@ export default function StudentSignUpPage() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* ── Left branding panel ───────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[52%] shrink-0 flex-col justify-between bg-gradient-to-br from-slate-900 via-primary/90 to-slate-900 p-12 text-white">
+      <div className="hidden lg:flex lg:w-[52%] shrink-0 flex-col justify-between bg-linear-to-br from-slate-900 via-primary/90 to-slate-900 p-12 text-white">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
             <Lightbulb className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">LectureCraft</span>
+          <span className="text-lg font-bold tracking-tight">LectureSuite</span>
         </div>
 
         <div className="space-y-8">
@@ -167,13 +167,13 @@ export default function StudentSignUpPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Lightbulb className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-base font-bold">LectureCraft</span>
+          <span className="text-base font-bold">LectureSuite</span>
         </div>
 
-        <div className="w-full max-w-[420px] space-y-6">
+        <div className="w-full max-w-105 space-y-6">
           <div className="space-y-1.5">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Create student account</h2>
-            <p className="text-sm text-muted-foreground">Join your institution's LectureCraft workspace</p>
+            <p className="text-sm text-muted-foreground">Join your institution's LectureSuite workspace</p>
           </div>
 
           {error && <Alert variant="error" title="Sign-up failed" description={error} />}
@@ -225,7 +225,7 @@ export default function StudentSignUpPage() {
               </label>
               <div className="relative">
                 {instLoading ? (
-                  <div className="flex h-9 items-center gap-2 rounded-md border border-[#E2DDD6] bg-white px-3 text-sm text-muted-foreground">
+                  <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-muted/30 px-3 text-sm text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Loading institutions…
                   </div>
@@ -235,7 +235,7 @@ export default function StudentSignUpPage() {
                       value={form.institutionId}
                       onChange={upd('institutionId')}
                       disabled={isLoading}
-                      className="w-full appearance-none rounded-md border border-[#E2DDD6] bg-white px-3 pr-8 h-9 text-sm text-foreground focus:outline-none focus:border-[#C9A227] focus:ring-2 focus:ring-[#C9A227]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="w-full appearance-none rounded-md border border-border bg-input px-3 pr-8 h-9 text-sm text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <option value="">Select your institution…</option>
                       {institutions.map((inst) => (

@@ -7,6 +7,7 @@ import { Button } from '@/components/design-system/buttons/Button'
 import { TextField } from '@/components/design-system/inputs/TextField'
 import { Alert } from '@/components/design-system/feedback/Alert'
 import { ROUTES } from '@/constants/routes'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 const LEVELS = ['ND', 'HND', 'BSC', 'MSC', 'MBA', 'PHD', 'PROFESSIONAL']
 
@@ -55,26 +56,20 @@ export default function CreateCoursePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(ROUTES.COURSES)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Back to courses"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Create Course</h1>
-          <p className="text-sm text-muted-foreground">Add a new course to your teaching portfolio</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Create Course"
+        description="Add a new course to your teaching portfolio."
+        actions={(
+          <Button type="button" variant="outline" size="sm" leftIcon={<ArrowLeft className="h-4 w-4" />} onClick={() => navigate(ROUTES.COURSES)}>
+            Back to courses
+          </Button>
+        )}
+      />
 
       {error && <Alert variant="error" description={error} />}
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-border bg-card p-6">
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-lg border border-border bg-card p-6 shadow-card">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             <BookOpen className="h-5 w-5 text-primary" />

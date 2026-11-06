@@ -4,6 +4,11 @@ import { format } from 'date-fns'
 import { type ReactNode } from 'react'
 import { FileText, BarChart2, TrendingUp, FileEdit } from 'lucide-react'
 import { analyticsApi, type ReportFrequency, type ReportFormat, type ScheduledReport } from '../../../lib/api/analytics.api'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Button } from '@/components/design-system/buttons/Button'
+import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 const FREQ_LABELS: Record<ReportFrequency, string> = {
   DAILY: 'Daily', WEEKLY: 'Weekly', MONTHLY: 'Monthly',
@@ -23,13 +28,11 @@ function ScheduledRow({ report, onToggle, onDelete }: {
   onDelete: (id: string) => void
 }) {
   return (
-    <div className="flex items-start gap-4 p-4 border-b border-border last:border-0 hover:bg-muted/20">
+    <div className="flex flex-col items-start gap-4 border-b border-border p-4 last:border-0 hover:bg-muted/20 sm:flex-row">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-foreground">{report.name}</p>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${report.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-            {report.isActive ? 'Active' : 'Paused'}
-          </span>
+          <Badge variant={report.isActive ? 'success' : 'neutral'}>{report.isActive ? 'Active' : 'Paused'}</Badge>
         </div>
         <div className="flex flex-wrap gap-2 mt-1 text-xs text-muted-foreground">
           <span>{FREQ_LABELS[report.frequency]}</span>
@@ -44,15 +47,9 @@ function ScheduledRow({ report, onToggle, onDelete }: {
           {report.nextRunAt && <span>Next: {format(new Date(report.nextRunAt), 'MMM d HH:mm')}</span>}
         </div>
       </div>
-      <div className="flex gap-2 shrink-0">
-        <button onClick={() => onToggle(report.id, !report.isActive)}
-          className={`text-xs px-2 py-1 rounded border ${report.isActive ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-green-200 text-green-700 hover:bg-green-50'}`}>
-          {report.isActive ? 'Pause' : 'Resume'}
-        </button>
-        <button onClick={() => { if (confirm('Delete scheduled report?')) onDelete(report.id) }}
-          className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50">
-          Delete
-        </button>
+      <div className="flex shrink-0 gap-2">
+        <Button variant="outline" size="sm" onClick={() => onToggle(report.id, !report.isActive)}>{report.isActive ? 'Pause' : 'Resume'}</Button>
+        <Button variant="ghost" size="sm" onClick={() => { if (confirm('Delete scheduled report?')) onDelete(report.id) }} className="text-destructive hover:text-destructive">Delete</Button>
       </div>
     </div>
   )
@@ -159,34 +156,17 @@ export function ScheduledReportsPage() {
   const paused = reports.filter((r) => !r.isActive)
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Scheduled Reports</h1>
-          <p className="text-sm text-muted-foreground">{reports.length} scheduled · {active.length} active</p>
-        </div>
-        <button onClick={() => setShowCreate(true)}
-          className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-sm font-medium hover:opacity-90">
-          + New Schedule
-        </button>
-      </div>
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Scheduled Reports" description={`${reports.length} scheduled · ${active.length} active`} icon={<FileText className="h-5 w-5" />} actions={<Button onClick={() => setShowCreate(true)}>+ New Schedule</Button>} className="mb-8" />
 
-      {isLoading && <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />)}</div>}
+      {isLoading && <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>}
 
       {!isLoading && reports.length === 0 && (
-        <div className="text-center py-16 text-muted-foreground">
-          <p className="text-4xl mb-3">⏰</p>
-          <p className="text-lg font-medium">No scheduled reports</p>
-          <p className="text-sm">Schedule automatic reports to be emailed to your team</p>
-          <button onClick={() => setShowCreate(true)}
-            className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
-            Schedule First Report
-          </button>
-        </div>
+        <EmptyState title="No scheduled reports" description="Schedule automatic reports to be emailed to your team" action={<Button onClick={() => setShowCreate(true)}>Schedule First Report</Button>} />
       )}
 
       {active.length > 0 && (
-        <div className="bg-card border border-border rounded-xl overflow-hidden mb-4">
+        <section className="bg-card border border-border rounded-lg overflow-hidden mb-4 shadow-card">
           <div className="px-4 py-3 border-b border-border bg-muted/30">
             <h2 className="text-sm font-semibold text-foreground">Active ({active.length})</h2>
           </div>
@@ -195,11 +175,11 @@ export function ScheduledReportsPage() {
               onToggle={(id, isActive) => updateMutation.mutate({ id, data: { isActive } })}
               onDelete={(id) => deleteMutation.mutate(id)} />
           ))}
-        </div>
+        </section>
       )}
 
       {paused.length > 0 && (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <section className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
           <div className="px-4 py-3 border-b border-border bg-muted/30">
             <h2 className="text-sm font-semibold text-muted-foreground">Paused ({paused.length})</h2>
           </div>
@@ -208,7 +188,7 @@ export function ScheduledReportsPage() {
               onToggle={(id, isActive) => updateMutation.mutate({ id, data: { isActive } })}
               onDelete={(id) => deleteMutation.mutate(id)} />
           ))}
-        </div>
+        </section>
       )}
 
       {showCreate && (

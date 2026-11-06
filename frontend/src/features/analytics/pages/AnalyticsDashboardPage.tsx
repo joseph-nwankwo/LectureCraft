@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { format, subDays } from 'date-fns'
 import {
   FileText, CalendarDays, HelpCircle, ClipboardList, Bot, DollarSign,
-  Users, Landmark, Zap, CheckCircle2, Clock, Inbox, Sparkles, GraduationCap,
+  Users, Landmark, Zap, CheckCircle2, Clock, Inbox, Sparkles, GraduationCap, BarChart2,
 } from 'lucide-react'
 import {
   analyticsApi,
@@ -13,9 +13,11 @@ import {
   type FacultyDashboard,
   type InstitutionDashboard,
 } from '../../../lib/api/analytics.api'
-import { StatCard, AreaChart, BarChart, PieChart, DateRangePicker } from '../components/Charts'
+import { StatCard, AreaChart, BarChart, PieChart, DateRangePicker, PALETTE } from '../components/Charts'
 import { ROUTES } from '../../../constants/routes'
 import { useAuth } from '../../../app/providers/AuthProvider'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 type Role = 'LECTURER' | 'TEACHING_ASSISTANT' | 'DEPARTMENT_HEAD' | 'DEAN' | 'UNIVERSITY_ADMIN' | 'ADMINISTRATOR'
 
@@ -53,11 +55,11 @@ function LecturerDashboardView({ data }: { data: LecturerDashboard }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-sm font-semibold mb-3 text-foreground">Documents Created (30 days)</h3>
-          <AreaChart data={data.docSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="Documents" color="#6366f1" />
+          <AreaChart data={data.docSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="Documents" color={PALETTE[0]} />
         </div>
         <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-sm font-semibold mb-3 text-foreground">AI Generations (30 days)</h3>
-          <AreaChart data={data.aiSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="Generations" color="#22c55e" />
+          <AreaChart data={data.aiSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="Generations" color={PALETTE[1]} />
         </div>
       </div>
 
@@ -117,7 +119,7 @@ function DepartmentDashboardView({ data, department }: { data: DepartmentDashboa
             <h3 className="text-sm font-semibold mb-3 text-foreground">AI Activity by Lecturer</h3>
             <BarChart
               data={data.teachingLoad.map((l) => ({ name: l.name.split(' ')[0], docs: l.documents, ai: l.aiGenerations }))}
-              dataKey="docs" xKey="name" label="Documents" color="#6366f1" horizontal />
+              dataKey="docs" xKey="name" label="Documents" color={PALETTE[0]} horizontal />
           </div>
         )}
       </div>
@@ -179,13 +181,13 @@ function FacultyDashboardView({ data }: { data: FacultyDashboard }) {
               <h3 className="text-sm font-semibold mb-3 text-foreground">Documents by Department</h3>
               <BarChart
                 data={data.deptBreakdown.map((d) => ({ name: d.department, documents: d.documents }))}
-                dataKey="documents" xKey="name" label="Documents" color="#6366f1" horizontal />
+                dataKey="documents" xKey="name" label="Documents" color={PALETTE[0]} horizontal />
             </div>
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="text-sm font-semibold mb-3 text-foreground">AI Generations by Department</h3>
               <BarChart
                 data={data.deptBreakdown.map((d) => ({ name: d.department, ai: d.aiGenerations }))}
-                dataKey="ai" xKey="name" label="AI Uses" color="#22c55e" horizontal />
+                dataKey="ai" xKey="name" label="AI Uses" color={PALETTE[1]} horizontal />
             </div>
           </div>
 
@@ -242,7 +244,7 @@ function InstitutionDashboardView({ data }: { data: InstitutionDashboard }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-card border border-border rounded-xl p-4">
           <h3 className="text-sm font-semibold mb-3 text-foreground">Content Growth (30 days)</h3>
-          <AreaChart data={data.growthSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="New Documents" color="#6366f1" />
+          <AreaChart data={data.growthSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="New Documents" color={PALETTE[0]} />
         </div>
         <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-sm font-semibold mb-3 text-foreground">Users by Role</h3>
@@ -254,7 +256,7 @@ function InstitutionDashboardView({ data }: { data: InstitutionDashboard }) {
         <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-sm font-semibold mb-3 text-foreground">AI by Provider</h3>
           <BarChart data={data.aiByProvider.map((p) => ({ name: p.provider, generations: p.generations }))}
-            dataKey="generations" xKey="name" color="#8b5cf6" />
+            dataKey="generations" xKey="name" color={PALETTE[4]} />
         </div>
         <div className="bg-card border border-border rounded-xl p-4">
           <h3 className="text-sm font-semibold mb-3 text-foreground">Documents by Status</h3>
@@ -303,42 +305,28 @@ export function AnalyticsDashboardPage() {
         : 'My teaching activity'
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Analytics Dashboard</h1>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader
+        title="Analytics Dashboard"
+        description={subtitle}
+        icon={<BarChart2 className="h-5 w-5" />}
+        actions={<div className="flex flex-wrap items-center gap-2">
           <DateRangePicker from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }} />
-          <div className="flex gap-2">
-            <Link to={ROUTES.ANALYTICS_TEACHING}
-              className="text-sm border border-border px-3 py-1.5 rounded-lg hover:bg-muted">
-              Teaching
-            </Link>
-            <Link to={ROUTES.ANALYTICS_ASSESSMENTS}
-              className="text-sm border border-border px-3 py-1.5 rounded-lg hover:bg-muted">
-              Assessments
-            </Link>
-            <Link to={ROUTES.AI_INSIGHTS}
-              className="text-sm border border-border px-3 py-1.5 rounded-lg hover:bg-muted">
-              AI Insights
-            </Link>
-            <Link to={ROUTES.REPORTS}
-              className="text-sm bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:opacity-90">
-              Reports
-            </Link>
-          </div>
-        </div>
-      </div>
+          <Link to={ROUTES.ANALYTICS_TEACHING} className="inline-flex h-8 items-center rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent">Teaching</Link>
+          <Link to={ROUTES.ANALYTICS_ASSESSMENTS} className="inline-flex h-8 items-center rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent">Assessments</Link>
+          <Link to={ROUTES.AI_INSIGHTS} className="inline-flex h-8 items-center rounded-md border border-input bg-background px-3 text-sm font-medium hover:bg-accent">AI Insights</Link>
+          <Link to={ROUTES.REPORTS} className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">Reports</Link>
+        </div>}
+        className="mb-8"
+      />
 
       {isLoading && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[...Array(6)].map((_, i) => <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />)}
+            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {[...Array(2)].map((_, i) => <div key={i} className="h-56 bg-muted rounded-xl animate-pulse" />)}
+            {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
           </div>
         </div>
       )}

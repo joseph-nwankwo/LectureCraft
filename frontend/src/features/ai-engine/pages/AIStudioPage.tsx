@@ -7,6 +7,8 @@ import {
 import { generationApi } from '@/lib/api/generation.api'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/design-system/buttons/Button'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 const GENERATORS = [
   { icon: BookOpen,      label: 'Lecture Notes',   desc: 'Comprehensive lecture notes with Bloom\'s Taxonomy',  route: ROUTES.GEN_LECTURE_NOTES,  color: 'text-blue-600',   bg: 'bg-blue-50 dark:bg-blue-950' },
@@ -31,22 +33,17 @@ export default function AIStudioPage() {
   const stats = statsData?.data
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
-            <Sparkles className="h-6 w-6 text-primary" />
-            AI Studio
-          </h1>
-          <p className="text-muted-foreground mt-1">Generate academic content powered by AI — lecture notes, assessments, plans and more.</p>
-        </div>
-        <button onClick={() => navigate(ROUTES.GEN_HISTORY)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <History className="h-4 w-4" />
-          Generation history
-        </button>
-      </div>
+    <div className="mx-auto max-w-[1600px] space-y-8 p-4 sm:p-6 lg:py-8">
+      <PageHeader
+        title="AI Studio"
+        icon={<Sparkles className="h-5 w-5" />}
+        description="Generate academic content powered by AI: lecture notes, assessments, plans and more."
+        actions={(
+          <Button variant="outline" size="sm" leftIcon={<History className="h-4 w-4" />} onClick={() => navigate(ROUTES.GEN_HISTORY)}>
+            Generation history
+          </Button>
+        )}
+      />
 
       {/* Stats row */}
       {stats && (
@@ -64,7 +61,7 @@ export default function AIStudioPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {GENERATORS.map(({ icon: Icon, label, desc, route, color, bg }) => (
             <button key={route} onClick={() => navigate(route)}
-              className="group relative text-left rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-sm transition-all duration-150">
+              className="group relative rounded-lg border border-border bg-card p-5 text-left shadow-card transition-all duration-150 hover:border-primary/40 hover:shadow-hover">
               <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl mb-4', bg)}>
                 <Icon className={cn('h-5 w-5', color)} />
               </div>
@@ -79,7 +76,7 @@ export default function AIStudioPage() {
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Recent activity</h2>
-          <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card shadow-card">
             {stats.recentActivity.slice(0, 5).map((item) => (
               <div key={item.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3 min-w-0">

@@ -6,6 +6,9 @@ import { GraduationCap, ClipboardList, Bot, Landmark, FileText, BarChart2 } from
 import { analyticsApi } from '../../../lib/api/analytics.api'
 import { DateRangePicker } from '../components/Charts'
 import { useAuth } from '../../../app/providers/AuthProvider'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Button } from '@/components/design-system/buttons/Button'
+import { Badge } from '@/components/design-system/display/Badge'
 
 type ReportType = 'teaching' | 'assessment' | 'ai-usage' | 'institution'
 type FmtType = 'pdf' | 'csv'
@@ -22,7 +25,7 @@ function ReportCard({ type, label, desc, icon, onDownload }: {
   onDownload: (type: ReportType, format: FmtType) => void
 }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition-shadow">
+    <article className="bg-card border border-border rounded-lg p-5 shadow-card hover:shadow-md transition-shadow">
       <div className="flex items-start gap-3">
         <span className="text-muted-foreground">{icon}</span>
         <div className="flex-1 min-w-0">
@@ -31,16 +34,14 @@ function ReportCard({ type, label, desc, icon, onDownload }: {
         </div>
       </div>
       <div className="flex gap-2 mt-4">
-        <button onClick={() => onDownload(type, 'pdf')}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs border border-border py-1.5 rounded-lg hover:bg-muted transition-colors">
+        <Button variant="outline" size="sm" className="flex-1" onClick={() => onDownload(type, 'pdf')}>
           <FileText className="h-3.5 w-3.5" /> PDF
-        </button>
-        <button onClick={() => onDownload(type, 'csv')}
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs border border-border py-1.5 rounded-lg hover:bg-muted transition-colors">
+        </Button>
+        <Button variant="outline" size="sm" className="flex-1" onClick={() => onDownload(type, 'csv')}>
           <BarChart2 className="h-3.5 w-3.5" /> CSV
-        </button>
+        </Button>
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -137,24 +138,15 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Reports</h1>
-          <p className="text-sm text-muted-foreground">Generate and download analytical reports</p>
-        </div>
-        <button onClick={() => setShowTemplateModal(true)}
-          className="text-sm border border-border px-3 py-1.5 rounded-lg hover:bg-muted">
-          + Save Template
-        </button>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Reports" description="Generate and download analytical reports" icon={<BarChart2 className="h-5 w-5" />} actions={<Button variant="outline" size="sm" onClick={() => setShowTemplateModal(true)}>+ Save Template</Button>} className="mb-8" />
 
       {/* Filters */}
-      <div className="bg-muted/30 border border-border rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-center">
+      <div className="bg-muted/30 border border-border rounded-lg p-4 mb-6 flex flex-wrap gap-4 items-center">
         <DateRangePicker from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }} />
         <div className="flex gap-2 ml-auto">
           {(['pdf', 'csv'] as FmtType[]).map((f) => (
-            <button key={f} onClick={() => setFmt(f)}
+            <button type="button" key={f} onClick={() => setFmt(f)} aria-pressed={fmt === f}
               className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
                 fmt === f ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted'
               }`}>
@@ -177,11 +169,11 @@ export function ReportsPage() {
           <h2 className="text-lg font-semibold mb-3 text-foreground">Saved Templates</h2>
           <div className="space-y-2">
             {templates.map((t) => (
-              <div key={t.id} className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg">
+              <div key={t.id} className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg shadow-card">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">{t.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {t.category} · by {t.creator.name}
+                    <Badge variant="neutral">{t.category}</Badge> · by {t.creator.name}
                     {t.isPublic && ' · Shared'}
                   </p>
                 </div>

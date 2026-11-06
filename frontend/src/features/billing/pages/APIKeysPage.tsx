@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { Key, Plus, RefreshCw, Trash2, Copy, Check } from 'lucide-react'
 import { billingApi } from '@/lib/api/billing.api'
 import { formatDate } from '@/lib/utils/format'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Button } from '@/components/design-system/buttons/Button'
+import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 interface APIKey {
   id: string; name: string; keyPrefix: string; scopes: string[]
@@ -61,24 +66,21 @@ export default function APIKeysPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Key className="w-6 h-6 text-indigo-600" />
-        <h1 className="text-2xl font-bold text-gray-900">API Keys</h1>
-      </div>
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="API Keys" description="Manage programmatic access to your LectureSuite account." icon={<Key className="h-5 w-5" />} className="mb-8" />
 
       {/* Revealed key alert */}
       {revealed && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <div className="mb-6 rounded-lg border border-warning/30 bg-warning-muted p-4" role="alert">
           <p className="text-sm font-semibold text-amber-800 mb-2">
             Save this key now — it will not be shown again.
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-white border border-amber-200 rounded px-3 py-2 text-xs font-mono text-amber-900 break-all">
+            <code className="min-w-0 flex-1 break-all rounded border border-warning/30 bg-background px-3 py-2 text-xs font-mono text-foreground">
               {revealed.rawKey}
             </code>
-            <button onClick={copyKey}
-              className="flex-none p-2 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors">
+            <button type="button" onClick={copyKey} aria-label="Copy new API key" title="Copy API key"
+              className="flex-none rounded-md p-2 text-warning-foreground hover:bg-warning/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-amber-700" />}
             </button>
           </div>
@@ -89,55 +91,53 @@ export default function APIKeysPage() {
       )}
 
       {/* Create form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Create New API Key</h3>
-        <div className="flex gap-3">
+      <section className="mb-6 rounded-lg border border-border bg-card p-4 shadow-card" aria-labelledby="create-key-heading">
+        <h2 id="create-key-heading" className="mb-3 text-sm font-semibold text-foreground">Create New API Key</h2>
+        <div className="flex flex-col gap-3 sm:flex-row">
           <input
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}
             placeholder="Key name (e.g. Production, CI)"
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="API key name"
+            className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           />
-          <button onClick={handleCreate} disabled={creating || !newKeyName.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
-            <Plus className="w-4 h-4" />
-            {creating ? 'Generating...' : 'Generate'}
-          </button>
+          <Button onClick={handleCreate} disabled={creating || !newKeyName.trim()} loading={creating} loadingText="Generating…"><Plus className="h-4 w-4" />Generate</Button>
         </div>
-      </div>
+      </section>
 
       {/* Keys list */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead className="border-b border-border bg-muted/50">
             <tr>
-              <th className="text-left p-4 font-semibold text-gray-600">Name</th>
-              <th className="text-left p-4 font-semibold text-gray-600">Prefix</th>
-              <th className="text-left p-4 font-semibold text-gray-600">Last Used</th>
-              <th className="text-left p-4 font-semibold text-gray-600">Created</th>
+              <th className="p-4 text-left font-semibold text-muted-foreground">Name</th>
+              <th className="p-4 text-left font-semibold text-muted-foreground">Prefix</th>
+              <th className="p-4 text-left font-semibold text-muted-foreground">Last Used</th>
+              <th className="p-4 text-left font-semibold text-muted-foreground">Created</th>
               <th className="p-4" />
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="p-8 text-center text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={5} className="p-8"><Skeleton className="mx-auto h-6 w-40" /></td></tr>
             ) : keys.length === 0 ? (
-              <tr><td colSpan={5} className="p-8 text-center text-gray-400">No API keys yet</td></tr>
+              <tr><td colSpan={5} className="p-4"><EmptyState icon={<Key className="h-6 w-6" />} title="No API keys yet" description="Create a key when you need programmatic access." size="sm" /></td></tr>
             ) : keys.filter((k) => k.active).map((key) => (
-              <tr key={key.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="p-4 font-medium text-gray-800">{key.name}</td>
-                <td className="p-4 font-mono text-gray-500 text-xs">{key.keyPrefix}...</td>
-                <td className="p-4 text-gray-500">{key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Never'}</td>
-                <td className="p-4 text-gray-500">{formatDate(key.createdAt)}</td>
+              <tr key={key.id} className="border-b border-border hover:bg-muted/30">
+                <td className="p-4 font-medium text-foreground">{key.name}</td>
+                <td className="p-4 font-mono text-xs text-muted-foreground"><Badge variant="neutral">{key.keyPrefix}...</Badge></td>
+                <td className="p-4 text-muted-foreground">{key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Never'}</td>
+                <td className="p-4 text-muted-foreground">{formatDate(key.createdAt)}</td>
                 <td className="p-4">
                   <div className="flex items-center gap-2 justify-end">
-                    <button onClick={() => handleRotate(key.id)}
-                      className="p-1.5 text-gray-400 hover:text-indigo-600 rounded" title="Rotate key">
+                    <button type="button" onClick={() => handleRotate(key.id)} aria-label={`Rotate ${key.name}`} title="Rotate key"
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <RefreshCw className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleRevoke(key.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded" title="Revoke key">
+                    <button type="button" onClick={() => handleRevoke(key.id)} aria-label={`Revoke ${key.name}`} title="Revoke key"
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -146,7 +146,8 @@ export default function APIKeysPage() {
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      </section>
     </div>
   )
 }

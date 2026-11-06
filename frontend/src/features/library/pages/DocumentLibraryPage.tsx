@@ -1,10 +1,15 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { Pin, Star, Trash2, Link2, CheckCircle2, Upload, FileText } from 'lucide-react'
+import { MoreHorizontal, Pin, Star, Trash2, Link2, CheckCircle2, Upload, FileText, Search, Plus } from 'lucide-react'
 import { libraryApi, type LibraryDocument, type LibraryStats, type Tag } from '../../../lib/api/library.api'
 import { FolderTree } from '../components/FolderTree'
 import { ROUTES, buildRoute } from '../../../constants/routes'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Button } from '@/components/design-system/buttons/Button'
+import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 const TYPE_LABELS: Record<string, string> = {
   LECTURE_NOTE:   'Lecture Notes',
@@ -20,15 +25,14 @@ const TYPE_LABELS: Record<string, string> = {
   UPLOADED:       'Uploaded Document',
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: 'bg-yellow-100 text-yellow-800', PUBLISHED: 'bg-green-100 text-green-800',
-  UNDER_REVIEW: 'bg-blue-100 text-blue-800', ARCHIVED: 'bg-gray-100 text-gray-700',
+const STATUS_VARIANTS: Record<string, 'warning' | 'success' | 'info' | 'neutral'> = {
+  DRAFT: 'warning', PUBLISHED: 'success', UNDER_REVIEW: 'info', ARCHIVED: 'neutral',
 }
 
 function DocCard({ doc, onAction }: { doc: LibraryDocument; onAction: (action: string, doc: LibraryDocument) => void }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return (
-    <div className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow relative group">
+    <article className="bg-card border border-border rounded-lg p-4 hover:shadow-card transition-shadow relative group">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <Link to={buildRoute(ROUTES.GEN_DOCUMENT_DETAIL, { id: doc.id })} className="font-medium text-foreground hover:text-primary truncate block">
@@ -36,9 +40,7 @@ function DocCard({ doc, onAction }: { doc: LibraryDocument; onAction: (action: s
           </Link>
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
             <span className="text-xs text-muted-foreground">{TYPE_LABELS[doc.type] ?? doc.type}</span>
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLORS[doc.status] ?? 'bg-muted text-muted-foreground'}`}>
-              {doc.status}
-            </span>
+            <Badge variant={STATUS_VARIANTS[doc.status] ?? 'neutral'}>{doc.status.replace(/_/g, ' ')}</Badge>
             {doc.isPinned && <span title="Pinned"><Pin className="h-3.5 w-3.5 text-primary" /></span>}
             {doc.isFavorited && <span title="Favorited"><Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" /></span>}
           </div>
@@ -55,10 +57,13 @@ function DocCard({ doc, onAction }: { doc: LibraryDocument; onAction: (action: s
         </div>
         <div className="relative shrink-0">
           <button
+            type="button"
             onClick={() => setMenuOpen((m) => !m)}
-            className="p-1 rounded hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label={`Actions for ${doc.title}`}
+            title="Document actions"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
           >
-            ⋮
+            <MoreHorizontal className="h-4 w-4" />
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1 w-40 bg-popover border border-border rounded shadow-lg z-20">
@@ -81,7 +86,7 @@ function DocCard({ doc, onAction }: { doc: LibraryDocument; onAction: (action: s
         <span>·</span>
         <span>{doc.viewCount} views</span>
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -150,9 +155,9 @@ export function DocumentLibraryPage() {
   const tags: Tag[] = (tagsData as { data: Tag[] } | undefined)?.data ?? []
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full min-h-0 flex-col md:flex-row">
       {/* Sidebar */}
-      <aside className="w-56 border-r border-border flex-col flex shrink-0 bg-card">
+      <aside className="flex w-full shrink-0 flex-col border-b border-border bg-card md:w-56 md:border-b-0 md:border-r">
         <FolderTree selectedId={selectedFolder} onSelect={setSelectedFolder} />
         <div className="border-t border-border p-3 space-y-1 text-sm">
           <button onClick={() => setShowFavorites((f) => !f)}
@@ -179,42 +184,52 @@ export function DocumentLibraryPage() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="border-b border-border bg-background px-4 pt-5 sm:px-6">
+          <PageHeader
+            title="Document Library"
+            description="Organize, review, and export your teaching documents."
+            icon={<FileText className="h-5 w-5" />}
+            actions={<Button onClick={() => navigate(ROUTES.AI_STUDIO)}><Plus className="h-4 w-4" />Generate</Button>}
+          />
+        </div>
         {/* Toolbar */}
-        <div className="flex items-center gap-3 p-4 border-b border-border bg-background shrink-0 flex-wrap">
-          <input
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background p-4 sm:px-6">
+          <div className="relative min-w-[min(100%,220px)] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             placeholder="Search documents…"
-            className="flex-1 min-w-[180px] border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+            aria-label="Search documents"
+            className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
           <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1) }}
-            className="border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none">
+            aria-label="Filter by document type"
+            className="h-9 min-w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
             <option value="">All Types</option>
             {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-            className="border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none">
+            aria-label="Filter by status"
+            className="h-9 min-w-32 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
             <option value="">All Statuses</option>
             {['DRAFT', 'PUBLISHED', 'UNDER_REVIEW', 'ARCHIVED'].map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          <button onClick={() => navigate(ROUTES.AI_STUDIO)}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 shrink-0">
-            + Generate
-          </button>
         </div>
 
         {/* Stats bar */}
-        <div className="flex gap-4 px-4 py-2 bg-muted/40 border-b border-border text-xs text-muted-foreground">
+        <div className="flex flex-wrap gap-x-4 gap-y-2 border-b border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground sm:px-6">
           {[['Total', stats.total], ['Pinned', stats.pinned], ['Drafts', stats.drafts], ['Published', stats.published]].map(([l, v]) => (
             <span key={l}>{l}: <strong className="text-foreground">{v}</strong></span>
           ))}
           {tags.length > 0 && (
             <div className="flex gap-1 ml-auto flex-wrap">
               {tags.slice(0, 5).map((t) => (
-                <span key={t.id} className="px-1.5 py-0.5 rounded-full border border-border cursor-pointer hover:bg-muted">
+                <span key={t.id} className="rounded-full border border-border px-1.5 py-0.5">
                   {t.name}
                 </span>
               ))}
@@ -223,26 +238,22 @@ export function DocumentLibraryPage() {
         </div>
 
         {/* Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {isLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-36 bg-muted rounded-lg animate-pulse" />
+                <Skeleton key={i} className="h-36 rounded-lg" />
               ))}
             </div>
           )}
           {!isLoading && docs.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground/40 mb-3" />
-              <p className="text-lg font-medium text-foreground">No documents found</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {search ? 'Try a different search' : 'Generate your first document with AI Studio'}
-              </p>
-              <button onClick={() => navigate(ROUTES.AI_STUDIO)}
-                className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:opacity-90">
-                Open AI Studio
-              </button>
-            </div>
+            <EmptyState
+              icon={<FileText className="h-7 w-7" />}
+              title="No documents found"
+              description={search ? 'Try a different search' : 'Generate your first document with AI Studio'}
+              action={<Button onClick={() => navigate(ROUTES.AI_STUDIO)}><Plus className="h-4 w-4" />Open AI Studio</Button>}
+              className="min-h-64 justify-center"
+            />
           )}
           {!isLoading && docs.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

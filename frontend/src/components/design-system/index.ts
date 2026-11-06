@@ -1,6 +1,8 @@
 // ── Primitives ───────────────────────────────────────────────────────────────
 export { Typography, typographyVariants }           from './primitives/Typography'
 export type { TypographyProps }                     from './primitives/Typography'
+export { PageHeader }                                from './layout/PageHeader'
+export type { PageHeaderProps }                      from './layout/PageHeader'
 
 // ── Buttons ──────────────────────────────────────────────────────────────────
 export { Button, buttonVariants }                   from './buttons/Button'

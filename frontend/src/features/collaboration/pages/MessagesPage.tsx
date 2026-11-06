@@ -45,7 +45,7 @@ function ConversationPane({ conversationId }: { conversationId: string }) {
               )}
               <div className={`max-w-xs lg:max-w-md ${isMine ? 'items-end' : 'items-start'} flex flex-col`}>
                 {!isMine && <span className="text-xs text-gray-400 mb-1 ml-1">{msg.sender.name}</span>}
-                <div className={`px-3 py-2 rounded-xl text-sm ${isMine ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
+                <div className={`px-3 py-2 rounded-xl text-sm ${isMine ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
                   {msg.deleted ? <em className="opacity-50">Message deleted</em> : msg.content}
                 </div>
                 <span className="text-xs text-gray-300 mt-1 mx-1">{formatDate(msg.createdAt)}</span>
@@ -60,7 +60,7 @@ function ConversationPane({ conversationId }: { conversationId: string }) {
 
       <form onSubmit={handleSend} className="border-t p-3 flex gap-2">
         <input
-          className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
+          className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           placeholder="Type a message..."
           value={input}
           onChange={(e) => { setInput(e.target.value); startTyping() }}
@@ -69,7 +69,7 @@ function ConversationPane({ conversationId }: { conversationId: string }) {
         <button
           type="submit"
           disabled={!input.trim()}
-          className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg disabled:opacity-40"
+          className="px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg disabled:opacity-40"
         >
           Send
         </button>
@@ -109,12 +109,12 @@ export default function MessagesPage() {
             <button
               key={c.id}
               onClick={() => navigate(ROUTES.CONVERSATION.replace(':conversationId', c.id))}
-              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b ${c.id === conversationId ? 'bg-indigo-50' : ''}`}
+              className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b ${c.id === conversationId ? 'bg-accent' : ''}`}
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium text-sm text-gray-800 truncate">{convName(c)}</span>
                 {c.unread > 0 && (
-                  <span className="ml-2 bg-indigo-600 text-white text-xs rounded-full px-1.5 py-0.5">{c.unread}</span>
+                  <span className="ml-2 bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5">{c.unread}</span>
                 )}
               </div>
               {c.messages[0] && (

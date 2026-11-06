@@ -15,7 +15,7 @@ interface ActivityItem {
 const actionIcon = (action: string) => {
   if (action.startsWith('document'))  return <FileText className="h-3.5 w-3.5 text-blue-500" />
   if (action.startsWith('ai'))        return <Bot className="h-3.5 w-3.5 text-purple-500" />
-  if (action.startsWith('assessment')) return <FileEdit className="h-3.5 w-3.5 text-indigo-500" />
+  if (action.startsWith('assessment')) return <FileEdit className="h-3.5 w-3.5 text-primary/80" />
   if (action.startsWith('comment'))   return <MessageSquare className="h-3.5 w-3.5 text-gray-500" />
   if (action.startsWith('approval'))  return <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
   if (action.startsWith('workspace')) return <Building2 className="h-3.5 w-3.5 text-amber-500" />
@@ -86,7 +86,7 @@ export default function ActivityFeedPage() {
                 <span className="font-medium text-sm text-gray-800">{item.actor.name}</span>
                 <span className="text-sm text-gray-500">{actionLabel(item.action)}</span>
                 {item.entityTitle && (
-                  <span className="text-sm font-medium text-indigo-600">"{item.entityTitle}"</span>
+                  <span className="text-sm font-medium text-primary">"{item.entityTitle}"</span>
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1">

@@ -448,13 +448,13 @@ export default function MarkingAssistantPage() {
     cn('flex-1 py-1 text-xs transition-colors', active ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-muted')
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] min-w-0 flex-col overflow-hidden bg-surface-1 lg:flex-row">
 
       {/* ── Left panel ───────────────────────────────────────────────── */}
-      <div className="w-[420px] shrink-0 flex flex-col border-r border-border bg-background">
+      <div className="flex max-h-[55vh] w-full max-w-none shrink-0 flex-col border-b border-border bg-card lg:max-h-none lg:w-[420px] lg:border-b-0 lg:border-r">
 
         {/* Header */}
-        <div className="p-5 border-b border-border shrink-0">
+        <div className="shrink-0 border-b border-border bg-surface-1 p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 shrink-0">
               <Users className="h-5 w-5 text-primary" />

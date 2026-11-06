@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ClipboardList } from 'lucide-react'
 import { assessmentApi, type AssessmentDetail, type Question, type AssessmentType } from '../../../lib/api/assessment.api'
 import { ROUTES } from '../../../constants/routes'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Badge } from '@/components/design-system/display/Badge'
 
 const ASSESSMENT_TYPES: AssessmentType[] = ['QUIZ', 'EXAM', 'ASSIGNMENT', 'PRACTICE', 'SURVEY']
 
@@ -136,19 +138,16 @@ export function AssessmentBuilderPage() {
   })
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       <div className="flex items-center gap-3 mb-6">
         <Link to={ROUTES.ASSESSMENT_LIST} className="text-sm text-muted-foreground hover:text-foreground">← Assessments</Link>
-        <h1 className="text-xl font-bold text-foreground">
-          {isNew ? 'New Assessment' : assessment?.title ?? 'Assessment Builder'}
-        </h1>
-        {assessment?.status && (
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            assessment.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
-            assessment.status === 'ARCHIVED' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-800'
-          }`}>{assessment.status}</span>
-        )}
       </div>
+      <PageHeader
+        title={isNew ? 'New Assessment' : assessment?.title ?? 'Assessment Builder'}
+        description="Configure assessment details and questions"
+        icon={<ClipboardList className="h-5 w-5" />}
+        actions={assessment?.status ? <Badge variant={assessment.status === 'PUBLISHED' ? 'success' : assessment.status === 'DRAFT' ? 'warning' : 'default'} size="sm">{assessment.status}</Badge> : undefined}
+      />
 
       {/* Meta form */}
       {(isNew || editingMeta) && (

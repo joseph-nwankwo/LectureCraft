@@ -5,6 +5,9 @@ import { billingApi } from '@/lib/api/billing.api'
 import { ProgressBar } from '@/features/analytics/components/Charts'
 import { ROUTES } from '@/constants/routes'
 import { formatDate } from '@/lib/utils/format'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Badge } from '@/components/design-system/display/Badge'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 interface UsageEntry {
   metric: string; label: string; used: number; limit: number | null
@@ -23,13 +26,8 @@ interface Subscription {
   plan: { name: string; slug: string; price: string; billingCycle: string }
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  ACTIVE: 'text-green-600 bg-green-50',
-  TRIALING: 'text-blue-600 bg-blue-50',
-  PAST_DUE: 'text-red-600 bg-red-50',
-  CANCELLED: 'text-gray-600 bg-gray-100',
-  EXPIRED: 'text-gray-600 bg-gray-100',
-  PAUSED: 'text-yellow-600 bg-yellow-50',
+const STATUS_VARIANT: Record<string, 'success' | 'info' | 'error' | 'neutral' | 'warning'> = {
+  ACTIVE: 'success', TRIALING: 'info', PAST_DUE: 'error', CANCELLED: 'neutral', EXPIRED: 'neutral', PAUSED: 'warning',
 }
 
 const METRIC_ICON: Record<string, React.ReactNode> = {
@@ -54,36 +52,28 @@ export default function BillingPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading billing info...</div>
+  if (loading) return <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8"><Skeleton className="h-10 w-64 rounded-lg" /><Skeleton className="h-48 rounded-lg" /><Skeleton className="h-56 rounded-lg" /></div>
 
   const plan = subscription?.plan
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Billing & Subscription</h1>
-        <Link to={ROUTES.BILLING_PLANS}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
-          Upgrade Plan
-        </Link>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Billing & Subscription" description="Manage your plan, usage, and payment history." icon={<CreditCard className="h-5 w-5" />} actions={<Link to={ROUTES.BILLING_PLANS} className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Upgrade Plan</Link>} />
 
       {/* Current Plan */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <section className="rounded-lg border border-border bg-card p-5 shadow-card sm:p-6" aria-labelledby="current-plan-heading">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-indigo-600" />
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="text-sm text-gray-500">Current Plan</p>
-              <h2 className="text-xl font-semibold text-gray-900">{plan?.name ?? 'No Plan'}</h2>
+              <h2 id="current-plan-heading" className="text-xl font-semibold text-foreground">{plan?.name ?? 'No Plan'}</h2>
             </div>
           </div>
           {subscription && (
-            <span className={`text-xs font-medium px-3 py-1 rounded-full ${STATUS_COLOR[subscription.status] ?? 'bg-gray-100 text-gray-600'}`}>
-              {subscription.status}
-            </span>
+            <Badge variant={STATUS_VARIANT[subscription.status] ?? 'neutral'}>{subscription.status}</Badge>
           )}
         </div>
 
@@ -112,18 +102,18 @@ export default function BillingPage() {
           </div>
         )}
 
-        <div className="mt-4 flex gap-3">
-          <Link to={ROUTES.BILLING_INVOICES} className="text-sm text-indigo-600 hover:underline">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link to={ROUTES.BILLING_INVOICES} className="text-sm text-primary hover:underline">
             View Invoices
           </Link>
           <span className="text-gray-300">|</span>
-          <Link to={ROUTES.BILLING_PAYMENTS} className="text-sm text-indigo-600 hover:underline">
+          <Link to={ROUTES.BILLING_PAYMENTS} className="text-sm text-primary hover:underline">
             Payment History
           </Link>
           {subscription?.status === 'ACTIVE' && (
             <>
               <span className="text-gray-300">|</span>
-              <button className="text-sm text-red-500 hover:underline"
+              <button type="button" className="text-sm text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={async () => {
                   if (!confirm('Cancel at end of period?')) return
                   await billingApi.cancelSubscription(false)
@@ -134,11 +124,11 @@ export default function BillingPage() {
             </>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Usage */}
       {usage && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <section className="rounded-lg border border-border bg-card p-5 shadow-card sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Current Period Usage</h3>
             {usage.periodEnd && (
@@ -159,12 +149,12 @@ export default function BillingPage() {
                 </div>
                 {!entry.unlimited && (
                   <ProgressBar value={entry.used} max={entry.limit ?? 1}
-                    color={entry.percentage > 85 ? '#ef4444' : entry.percentage > 60 ? '#f59e0b' : '#6366f1'} />
+                    color={entry.percentage > 85 ? 'var(--error)' : entry.percentage > 60 ? 'var(--warning)' : 'var(--primary)'} />
                 )}
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Quick links */}
@@ -176,7 +166,7 @@ export default function BillingPage() {
           { label: 'Usage', href: ROUTES.BILLING_USAGE, icon: <Download className="w-5 h-5" /> },
         ].map((item) => (
           <Link key={item.href} to={item.href}
-            className="flex flex-col items-center gap-2 p-4 bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-gray-600 hover:text-indigo-600">
+            className="flex flex-col items-center gap-2 rounded-lg border border-border bg-card p-4 text-muted-foreground shadow-card transition-colors hover:border-primary/40 hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {item.icon}
             <span className="text-sm font-medium">{item.label}</span>
           </Link>

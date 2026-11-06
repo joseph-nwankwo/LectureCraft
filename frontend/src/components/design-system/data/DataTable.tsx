@@ -220,7 +220,7 @@ export function DataTable<T extends { id: string }>({
                     key={col.key}
                     style={{ width: col.width, minWidth: col.minWidth }}
                     className={cn(
-                      'px-3 py-3 text-[0.8125rem] font-semibold text-foreground whitespace-nowrap',
+                      'px-3 py-3 text-[0.8125rem] font-semibold text-muted-foreground whitespace-nowrap',
                       col.align === 'center' && 'text-center',
                       col.align === 'right' && 'text-right',
                       col.sortable && 'cursor-pointer select-none hover:bg-muted/70 transition-colors'

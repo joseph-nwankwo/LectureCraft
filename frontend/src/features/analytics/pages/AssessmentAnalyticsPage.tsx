@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { HelpCircle, ClipboardList, Ruler, Target } from 'lucide-react'
 import { analyticsApi } from '../../../lib/api/analytics.api'
 import { BarChart, PieChart, RadarChart, StatCard, ProgressBar, PALETTE } from '../components/Charts'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
+import { Badge } from '@/components/design-system/display/Badge'
 
 const BLOOM_ORDER = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYSE', 'EVALUATE', 'CREATE']
 const BLOOM_COLORS = ['#6b7280', '#3b82f6', '#22c55e', '#f59e0b', '#f97316', '#8b5cf6']
@@ -25,16 +28,13 @@ export function AssessmentAnalyticsPage() {
   })
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Assessment Analytics</h1>
-        <p className="text-sm text-muted-foreground">Question bank health, Bloom's distribution, and assessment coverage</p>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Assessment Analytics" description="Question bank health, Bloom's distribution, and assessment coverage" icon={<ClipboardList className="h-5 w-5" />} className="mb-8" />
 
       {isLoading && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />)}</div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{[...Array(4)].map((_, i) => <div key={i} className="h-52 bg-muted rounded-xl animate-pulse" />)}</div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-52 rounded-xl" />)}</div>
         </div>
       )}
 
@@ -49,7 +49,7 @@ export function AssessmentAnalyticsPage() {
           </div>
 
           {/* Bloom's coverage */}
-          <div className="bg-card border border-border rounded-xl p-5 mb-6">
+          <div className="bg-card border border-border rounded-lg p-5 mb-6 shadow-card">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="font-semibold text-foreground">Bloom's Taxonomy Coverage</h2>
@@ -58,9 +58,7 @@ export function AssessmentAnalyticsPage() {
                   {bloom.missingLevels.length > 0 && ` · Missing: ${bloom.missingLevels.join(', ')}`}
                 </p>
               </div>
-              <div className={`text-2xl font-bold ${bloom.coverageScore >= 80 ? 'text-green-600' : bloom.coverageScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
-                {bloom.coverageScore}%
-              </div>
+              <Badge variant={bloom.coverageScore >= 80 ? 'success' : bloom.coverageScore >= 50 ? 'warning' : 'error'}>{bloom.coverageScore}% coverage</Badge>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <RadarChart data={bloomRadar} dataKey="value" angleKey="subject" height={220} />
@@ -77,13 +75,13 @@ export function AssessmentAnalyticsPage() {
 
           {/* Charts row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">Questions by Type</h3>
               <BarChart
                 data={stats.questions.byType.map((t) => ({ name: t.type.replace('_', ' '), count: t.count }))}
                 dataKey="count" xKey="name" color={PALETTE[0]} horizontal />
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">Difficulty Distribution</h3>
               <PieChart
                 data={stats.questions.byDifficulty.map((d) => ({ name: d.difficulty, count: d.count }))}
@@ -92,12 +90,12 @@ export function AssessmentAnalyticsPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">Moderation Status</h3>
               <PieChart
                 data={stats.questions.byModeration.map((m) => ({ name: m.status.replace('_', ' '), count: m.count }))} />
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">Assessments by Type</h3>
               <BarChart
                 data={stats.assessments.byType.map((t) => ({ name: t.type, count: t.count }))}

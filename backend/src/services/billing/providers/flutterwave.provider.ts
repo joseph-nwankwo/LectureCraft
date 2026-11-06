@@ -26,7 +26,7 @@ export class FlutterwaveProvider implements IPaymentProvider {
         redirect_url: opts.successUrl,
         customer: { email: opts.email },
         meta: { institutionId: opts.institutionId, invoiceId: opts.invoiceId, provider: 'flutterwave', ...opts.metadata },
-        customizations: { title: 'LectureCraft', description: `Invoice ${opts.invoiceId}` },
+        customizations: { title: 'LectureSuite', description: `Invoice ${opts.invoiceId}` },
       },
       { headers: headers() },
     )

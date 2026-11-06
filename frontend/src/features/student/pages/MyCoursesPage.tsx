@@ -5,6 +5,9 @@ import { enrollmentApi, type CourseBasic, type EnrolledCourse } from '@/lib/api/
 import { coursesApi, type JoinedCourse } from '@/lib/api/courses.api'
 import { ROUTES, buildRoute } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 type Tab = 'enrolled' | 'available'
 
@@ -178,12 +181,9 @@ export default function MyCoursesPage() {
 
   return (
     <>
-      <div className="px-6 py-5 border-b border-border bg-background">
-        <h1 className="text-lg font-semibold text-foreground">My Courses</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Browse and manage your course enrollments</p>
-      </div>
+      <div className="border-b border-border bg-background px-4 pt-6 sm:px-6"><PageHeader title="My Courses" description="Browse and manage your course enrollments" icon={<BookOpen className="h-5 w-5" />} /></div>
 
-      <div className="px-6 py-5 max-w-5xl mx-auto">
+      <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
         {error && (
           <div className="mb-4 flex items-center gap-2 text-sm text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-4 py-2.5">
             <AlertCircle className="h-4 w-4 shrink-0" /> {error}
@@ -224,24 +224,17 @@ export default function MyCoursesPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Skeleton className="h-48 rounded-lg" /><Skeleton className="h-48 rounded-lg" /></div>
         ) : tab === 'enrolled' ? (
           filteredEnrolled.length === 0 && filteredJoined.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <BookOpen className="mx-auto mb-3 h-10 w-10 opacity-30" />
-              <p className="font-medium">Not enrolled in any courses yet</p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-3">
-                <button onClick={() => setTab('available')} className="text-sm text-primary hover:underline">
-                  Browse available courses
-                </button>
-                <span className="text-muted-foreground text-sm hidden sm:block">·</span>
-                <button onClick={() => setShowJoin(true)} className="text-sm text-primary hover:underline">
-                  Join with a code
-                </button>
-              </div>
-            </div>
+            <EmptyState
+              icon={<BookOpen className="h-7 w-7" />}
+              title="Not enrolled in any courses yet"
+              description="Browse available courses or join with a code."
+              size="lg"
+              action={<button type="button" onClick={() => setTab('available')} className="text-sm text-primary hover:underline">Browse available courses</button>}
+              secondaryAction={<button type="button" onClick={() => setShowJoin(true)} className="text-sm text-primary hover:underline">Join with a code</button>}
+            />
           ) : (
             <div className="space-y-6">
               {/* Institutional courses */}
@@ -252,7 +245,7 @@ export default function MyCoursesPage() {
                   )}
                   <div className="grid sm:grid-cols-2 gap-4">
                     {filteredEnrolled.map((c) => (
-                      <div key={c.id} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
+                      <article key={c.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-card">
                         <div>
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-semibold text-foreground">{c.title}</p>
@@ -294,7 +287,7 @@ export default function MyCoursesPage() {
                         >
                           {dropping === c.id ? 'Dropping…' : 'Drop course'}
                         </button>
-                      </div>
+                      </article>
                     ))}
                   </div>
                 </div>
@@ -308,7 +301,7 @@ export default function MyCoursesPage() {
                   )}
                   <div className="grid sm:grid-cols-2 gap-4">
                     {filteredJoined.map((c) => (
-                      <div key={c.id} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
+                      <article key={c.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-card">
                         <div>
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-semibold text-foreground">{c.title}</p>
@@ -337,7 +330,7 @@ export default function MyCoursesPage() {
                             View course <ArrowRight className="h-3 w-3" />
                           </button>
                         </div>
-                      </div>
+                      </article>
                     ))}
                   </div>
                 </div>
@@ -346,14 +339,11 @@ export default function MyCoursesPage() {
           )
         ) : (
           filteredAvailable.filter((c) => !c.enrolled).length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <CheckCircle className="mx-auto mb-3 h-10 w-10 opacity-30" />
-              <p className="font-medium">You're enrolled in all available courses!</p>
-            </div>
+            <EmptyState icon={<CheckCircle className="h-7 w-7" />} title="You're enrolled in all available courses!" size="lg" />
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
               {filteredAvailable.filter((c) => !c.enrolled).map((c) => (
-                <div key={c.id} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
+                <article key={c.id} className="flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-card">
                   <div>
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold text-foreground">{c.title}</p>
@@ -377,7 +367,7 @@ export default function MyCoursesPage() {
                     {enrolling === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     Enroll
                   </button>
-                </div>
+                </article>
               ))}
             </div>
           )

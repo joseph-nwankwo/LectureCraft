@@ -6,6 +6,7 @@ import { Button } from '@/components/design-system/buttons/Button'
 import { Alert } from '@/components/design-system/feedback/Alert'
 import { Badge } from '@/components/design-system/display/Badge'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 export type InstitutionType = 'UNIVERSITY' | 'POLYTECHNIC' | 'COLLEGE_OF_EDUCATION' | 'MONOTECHNIC' | 'VOCATIONAL_INSTITUTION' | 'OTHER'
 
@@ -112,7 +113,7 @@ export default function InstitutionSettingsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6 p-6">
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         <Skeleton className="h-8 w-64 rounded-lg" />
         <div className="grid grid-cols-2 gap-4">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
       </div>
@@ -120,14 +121,8 @@ export default function InstitutionSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Building2 className="h-6 w-6 text-primary" />
-          Institution Settings
-        </h1>
-        <p className="text-sm text-muted-foreground">Manage your institution's profile and contact information</p>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Institution Settings" description="Manage your institution's profile and contact information" icon={<Building2 className="h-5 w-5" />} />
 
       {/* Subscription banner */}
       {institution && (
@@ -166,7 +161,7 @@ export default function InstitutionSettingsPage() {
       )}
 
       {/* Read-only info cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <InfoCard icon={Globe} label="Domain" value={institution?.domain} />
         <InfoCard icon={Clock} label="Timezone" value={institution?.timezone} />
         <InfoCard icon={Building2} label="Country" value={institution?.country} />
@@ -178,7 +173,7 @@ export default function InstitutionSettingsPage() {
         <h2 className="font-semibold text-foreground">Profile information</h2>
         {msg && <Alert variant={msg.type === 'success' ? 'success' : 'error'} description={msg.text} />}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Institution name" value={form.name} onChange={upd('name')} required disabled={saving} />
           <TextField label="Abbreviation" value={form.abbreviation} onChange={upd('abbreviation')} disabled={saving} placeholder="UNILAG" />
         </div>
@@ -200,7 +195,7 @@ export default function InstitutionSettingsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Contact email" type="email" value={form.contactEmail} onChange={upd('contactEmail')} disabled={saving} />
           <TextField label="Contact phone" value={form.contactPhone} onChange={upd('contactPhone')} disabled={saving} placeholder="+234 xxx xxx xxxx" />
         </div>
@@ -208,7 +203,7 @@ export default function InstitutionSettingsPage() {
         <TextField label="Website" type="url" value={form.website} onChange={upd('website')} disabled={saving} placeholder="https://institution.edu.ng" />
         <TextField label="Address" value={form.address} onChange={upd('address')} disabled={saving} />
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <TextField label="City" value={form.city} onChange={upd('city')} disabled={saving} />
           <TextField label="State" value={form.state} onChange={upd('state')} disabled={saving} />
           <TextField label="Country" value={form.country} onChange={upd('country')} disabled={saving} />

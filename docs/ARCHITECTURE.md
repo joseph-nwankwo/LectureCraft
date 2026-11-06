@@ -1,8 +1,8 @@
-# LectureCraft — System Architecture
+# LectureSuite — System Architecture
 
 ## Overview
 
-LectureCraft is a multi-tenant, AI-powered academic content platform for Nigerian/African higher education. It follows a layered service-oriented architecture deployed as Docker containers, with optional Kubernetes orchestration.
+LectureSuite is a multi-tenant, AI-powered academic content platform for Nigerian/African higher education. It follows a layered service-oriented architecture deployed as Docker containers, with optional Kubernetes orchestration.
 
 ## High-Level Topology
 

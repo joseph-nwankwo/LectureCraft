@@ -40,9 +40,19 @@ const buttonVariants = cva(
           'hover:bg-error/90 hover:shadow-hover',
           'active:scale-[0.98]',
         ].join(' '),
+        destructive: [
+          'bg-error text-error-foreground border-error',
+          'hover:bg-error/90 hover:shadow-hover',
+          'active:scale-[0.98]',
+        ].join(' '),
         success: [
           'bg-success text-success-foreground border-success',
           'hover:bg-success/90 hover:shadow-hover',
+          'active:scale-[0.98]',
+        ].join(' '),
+        accent: [
+          'bg-brand-gold text-brand-navy border-brand-gold',
+          'hover:bg-brand-gold/90 hover:shadow-hover',
           'active:scale-[0.98]',
         ].join(' '),
         link: [

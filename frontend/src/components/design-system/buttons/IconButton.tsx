@@ -21,6 +21,8 @@ const iconButtonVariants = cva(
         outline:   'bg-transparent text-foreground border-border hover:bg-muted active:scale-95',
         ghost:     'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95',
         danger:    'bg-error text-error-foreground hover:bg-error/90 active:scale-95',
+        destructive: 'bg-error text-error-foreground hover:bg-error/90 active:scale-95',
+        accent:    'bg-brand-gold text-brand-navy hover:bg-brand-gold/90 active:scale-95',
       },
       size: {
         xs: 'h-6 w-6',

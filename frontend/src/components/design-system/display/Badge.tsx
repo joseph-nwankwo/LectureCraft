@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-type Variant = 'default' | 'success' | 'warning' | 'error' | 'outline'
+type Variant = 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'destructive' | 'outline'
 type Size    = 'sm' | 'md' | 'lg'
 
 interface BadgeProps {
@@ -12,9 +12,14 @@ interface BadgeProps {
 
 const variantClasses: Record<Variant, string> = {
   default: 'bg-primary/10 text-primary border-primary/20',
+  primary: 'bg-primary/10 text-primary border-primary/20',
+  secondary: 'bg-secondary text-secondary-foreground border-border',
   success: 'bg-success/10 text-success border-success/20',
   warning: 'bg-warning/10 text-warning border-warning/20',
   error:   'bg-error/10 text-error border-error/20',
+  info:    'bg-info/10 text-info border-info/20',
+  neutral: 'bg-muted text-muted-foreground border-border',
+  destructive: 'bg-error/10 text-error border-error/20',
   outline: 'bg-transparent text-foreground border-border',
 }
 

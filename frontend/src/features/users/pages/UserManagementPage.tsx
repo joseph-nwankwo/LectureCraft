@@ -6,6 +6,7 @@ import { Badge } from '@/components/design-system/display/Badge'
 import { Alert } from '@/components/design-system/feedback/Alert'
 import type { Column } from '@/components/design-system/data/DataTable'
 import { DataTable } from '@/components/design-system/data/DataTable'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 interface UserRow {
   id: string
@@ -159,14 +160,13 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-          <p className="text-sm text-muted-foreground">{total} members in your institution</p>
-        </div>
-        <Button variant="primary" leftIcon={<UserPlus className="h-4 w-4" />}>Invite user</Button>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="User Management"
+        description={`${total} members in your institution`}
+        icon={<UserPlus className="h-5 w-5" />}
+        actions={<Button variant="primary" leftIcon={<UserPlus className="h-4 w-4" />}>Invite user</Button>}
+      />
 
       {error && <Alert variant="error" description={error} />}
 

@@ -116,7 +116,7 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: good
-          SLACK_MESSAGE: ':rocket: LectureCraft production deployed successfully — tag `${{ env.IMAGE_TAG }}`'
+          SLACK_MESSAGE: ':rocket: LectureSuite production deployed successfully — tag `${{ env.IMAGE_TAG }}`'
 
       - name: Notify on failure
         if: failure()
@@ -124,4 +124,4 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: danger
-          SLACK_MESSAGE: ':x: LectureCraft production deployment FAILED'
+          SLACK_MESSAGE: ':x: LectureSuite production deployment FAILED'

@@ -16,6 +16,7 @@ import { Badge } from '@/components/design-system/display/Badge'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 import { type InstitutionType, INSTITUTION_TYPE_LABELS } from '@/features/settings/pages/InstitutionSettingsPage'
 import {
   type GradeBand,
@@ -178,7 +179,7 @@ function ProfileTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={saving} />
         <TextField label="Last name"  value={lastName}  onChange={(e) => setLastName(e.target.value)}  disabled={saving} />
       </div>
@@ -481,7 +482,7 @@ function NotificationsTab() {
               description="When a long AI generation finishes"
               checked={prefs.email.aiGenComplete}    onChange={(v) => updateEmail('aiGenComplete', v)} />
             <ToggleRow label="Weekly activity digest"
-              description="A weekly summary of your LectureCraft activity"
+              description="A weekly summary of your LectureSuite activity"
               checked={prefs.email.weeklyDigest}     onChange={(v) => updateEmail('weeklyDigest', v)} />
           </div>
         </div>
@@ -898,29 +899,26 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('profile')
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your account, security, and preferences</p>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Settings" description="Manage your account, security, and preferences" icon={<Settings2 className="h-5 w-5" />} />
 
       <div className="flex flex-col gap-6 sm:flex-row">
-        <nav className="flex shrink-0 flex-row gap-1 sm:flex-col sm:w-48 overflow-x-auto">
+        <nav aria-label="Settings sections" className="flex shrink-0 flex-row gap-1 overflow-x-auto pb-1 sm:w-48 sm:flex-col sm:overflow-visible sm:pb-0">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" onClick={() => setActiveTab(id)}
               className={cn(
-                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left whitespace-nowrap',
+                'flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 activeTab === id
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}>
               <Icon className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:block">{label}</span>
+              <span>{label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="flex-1 rounded-xl border border-border bg-card p-6">
+        <section className="min-w-0 flex-1 rounded-lg border border-border bg-card p-4 shadow-card sm:p-6" aria-live="polite">
           {activeTab === 'profile'       && <ProfileTab />}
           {activeTab === 'security'      && <SecurityTab />}
           {activeTab === 'sessions'      && <SessionsTab />}
@@ -929,7 +927,7 @@ export default function SettingsPage() {
           {activeTab === 'branding'      && <BrandingTab />}
           {activeTab === 'grading'       && <GradingTab />}
           {activeTab === 'institution'   && <InstitutionTab />}
-        </div>
+        </section>
       </div>
     </div>
   )

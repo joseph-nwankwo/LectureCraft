@@ -49,7 +49,7 @@ export default function WorkspaceDashboardPage() {
   return (
     <div className="max-w-5xl mx-auto p-6">
       <div className="flex items-center gap-4 mb-6">
-        <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-2xl font-bold text-indigo-600">
+        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-2xl font-bold text-primary">
           {data.workspace.name[0]}
         </div>
         <div>
@@ -74,15 +74,15 @@ export default function WorkspaceDashboardPage() {
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white border rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-indigo-600">{data.memberCount}</div>
+          <div className="text-2xl font-bold text-primary">{data.memberCount}</div>
           <div className="text-sm text-gray-500 mt-1">Members</div>
         </div>
         <div className="bg-white border rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-indigo-600">{data.recentActivity.length}</div>
+          <div className="text-2xl font-bold text-primary">{data.recentActivity.length}</div>
           <div className="text-sm text-gray-500 mt-1">Recent Activities</div>
         </div>
         <div className="bg-white border rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-indigo-600">{data.upcomingEvents.length}</div>
+          <div className="text-2xl font-bold text-primary">{data.upcomingEvents.length}</div>
           <div className="text-sm text-gray-500 mt-1">Upcoming Events</div>
         </div>
       </div>
@@ -119,12 +119,12 @@ export default function WorkspaceDashboardPage() {
             <ul className="space-y-3">
               {data.upcomingEvents.map((event) => (
                 <li key={event.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-accent0 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-800 truncate">{event.title}</div>
                     <div className="text-xs text-gray-400">{formatDate(event.startAt)}</div>
                   </div>
-                  <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-accent text-primary px-2 py-0.5 rounded-full">
                     {event.eventType}
                   </span>
                 </li>

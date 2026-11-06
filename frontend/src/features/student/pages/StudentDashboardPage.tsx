@@ -5,6 +5,9 @@ import { studentApi, type DashboardData } from '@/lib/api/student.api'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 function fmtDate(d: string | null) {
   if (!d) return 'No due date'
@@ -42,9 +45,7 @@ export default function StudentDashboardPage() {
   }, [])
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
-    </div>
+    <div className="mx-auto max-w-5xl space-y-4 px-4 py-6 sm:px-6 sm:py-8"><Skeleton className="h-10 w-64 rounded-lg" /><Skeleton className="h-24 rounded-lg" /><Skeleton className="h-64 rounded-lg" /></div>
   )
 
   if (error) return (
@@ -57,13 +58,8 @@ export default function StudentDashboardPage() {
   const stats = data?.stats
 
   return (
-    <div className="px-6 py-6 max-w-5xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          Welcome back, {user?.firstName ?? user?.name?.split(' ')[0]} 👋
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Here's what's happening with your studies.</p>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title={`Welcome back, ${user?.firstName ?? user?.name?.split(' ')[0] ?? 'Student'}`} description="Here's what's happening with your studies." icon={<BookOpen className="h-5 w-5" />} className="mb-8" />
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -73,7 +69,7 @@ export default function StudentDashboardPage() {
           { label: 'Total Submissions', value: stats?.totalSubmissions ?? 0, icon: CheckCircle, color: 'text-green-600' },
           { label: 'Avg Grade', value: stats?.avgGrade != null ? `${stats.avgGrade.toFixed(1)}%` : '—', icon: TrendingUp, color: 'text-purple-600' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-4">
+          <div key={label} className="rounded-lg border border-border bg-card p-4 shadow-card">
             <div className="flex items-center gap-2 mb-1">
               <Icon className={cn('h-4 w-4', color)} />
               <span className="text-xs text-muted-foreground">{label}</span>
@@ -85,13 +81,13 @@ export default function StudentDashboardPage() {
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Pending assignments */}
-        <div className="bg-card border border-border rounded-xl p-5">
+        <section className="rounded-lg border border-border bg-card p-5 shadow-card" aria-labelledby="pending-assignments-heading">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-foreground">Pending Assignments</h2>
+            <h2 id="pending-assignments-heading" className="font-semibold text-foreground">Pending Assignments</h2>
             <Link to={ROUTES.STUDENT_COURSES} className="text-xs text-primary hover:underline">View all</Link>
           </div>
           {(data?.pendingAssignments.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">All caught up! No pending assignments.</p>
+            <EmptyState title="All caught up" description="No pending assignments." size="sm" card={false} />
           ) : (
             <ul className="space-y-3">
               {data!.pendingAssignments.slice(0, 6).map((a) => {
@@ -124,16 +120,16 @@ export default function StudentDashboardPage() {
               })}
             </ul>
           )}
-        </div>
+        </section>
 
         {/* Recent submissions */}
-        <div className="bg-card border border-border rounded-xl p-5">
+        <section className="rounded-lg border border-border bg-card p-5 shadow-card" aria-labelledby="recent-submissions-heading">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-foreground">Recent Submissions</h2>
+            <h2 id="recent-submissions-heading" className="font-semibold text-foreground">Recent Submissions</h2>
             <Link to={ROUTES.STUDENT_SUBMISSIONS} className="text-xs text-primary hover:underline">View all</Link>
           </div>
           {(data?.recentSubmissions.length ?? 0) === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No submissions yet.</p>
+            <EmptyState title="No submissions yet" description="Your submitted assignments will appear here." size="sm" card={false} />
           ) : (
             <ul className="space-y-3">
               {data!.recentSubmissions.map((s) => (
@@ -158,7 +154,7 @@ export default function StudentDashboardPage() {
               ))}
             </ul>
           )}
-        </div>
+        </section>
       </div>
     </div>
   )

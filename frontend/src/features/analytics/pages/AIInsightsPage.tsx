@@ -7,6 +7,9 @@ import { GraduationCap, Brain, BarChart2, Landmark } from 'lucide-react'
 import { analyticsApi } from '../../../lib/api/analytics.api'
 import { useAuth } from '../../../app/providers/AuthProvider'
 import { RadarChart, PieChart, StatCard, ProgressBar, PALETTE } from '../components/Charts'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Button } from '@/components/design-system/buttons/Button'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 type InsightType = 'lecturer' | 'institution' | 'bloom' | 'assessment'
 
@@ -55,16 +58,13 @@ export function AIInsightsPage() {
   }))
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">AI Insights</h1>
-        <p className="text-sm text-muted-foreground">AI-generated analysis and recommendations for your teaching practice</p>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="AI Insights" description="AI-generated analysis and recommendations for your teaching practice" icon={<Brain className="h-5 w-5" />} className="mb-8" />
 
       {/* Visual overview cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {bloomData && (
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-lg p-4 shadow-card">
             <h3 className="text-sm font-semibold mb-1 text-foreground">Bloom's Coverage</h3>
             <p className="text-xs text-muted-foreground mb-2">
               {bloomData.coverageScore}% of Bloom's levels covered
@@ -78,7 +78,7 @@ export function AIInsightsPage() {
         )}
 
         {assStats && (
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-lg p-4 shadow-card">
             <h3 className="text-sm font-semibold mb-1 text-foreground">Difficulty Distribution</h3>
             <p className="text-xs text-muted-foreground mb-2">{assStats.questions.total} total questions</p>
             {diffData.length > 0
@@ -89,7 +89,7 @@ export function AIInsightsPage() {
         )}
 
         {assStats && bloomData && (
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-lg p-4 shadow-card">
             <h3 className="text-sm font-semibold mb-3 text-foreground">Quality Indicators</h3>
             <div className="space-y-3">
               <StatCard label="Coverage Score" value={`${bloomData.coverageScore}%`}
@@ -106,7 +106,7 @@ export function AIInsightsPage() {
       </div>
 
       {/* Insight type tabs */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <section className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
         <div className="flex border-b border-border overflow-x-auto">
           {tabs.map((t) => (
             <button key={t.type} onClick={() => setActiveType(t.type)}
@@ -125,17 +125,17 @@ export function AIInsightsPage() {
           {insightQuery.isLoading && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <Skeleton className="h-4 w-4 rounded-full" />
                 Generating AI insights…
               </div>
               {[95, 80, 88, 72, 85].map((w, i) => (
-                <div key={i} className="h-4 bg-muted rounded animate-pulse" style={{ width: `${w}%` }} />
+                <div key={i} className="h-4 animate-pulse rounded bg-muted" style={{ width: `${w}%` }} />
               ))}
             </div>
           )}
 
           {insightQuery.error && (
-            <div className="text-sm text-red-600 p-4 bg-red-50 rounded-lg border border-red-200">
+            <div className="text-sm text-red-700 p-4 bg-error-muted rounded-lg border border-error/30" role="alert">
               <p className="font-medium">Could not generate insights</p>
               <p className="text-xs mt-1">{(insightQuery.error as Error).message}</p>
             </div>
@@ -150,14 +150,14 @@ export function AIInsightsPage() {
           )}
 
           <div className="flex justify-end mt-4">
-            <button onClick={() => void insightQuery.refetch()}
+            <Button variant="outline" size="sm" onClick={() => void insightQuery.refetch()}
               disabled={insightQuery.isFetching}
-              className="text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/5 disabled:opacity-50">
+              aria-label="Regenerate AI insights">
               {insightQuery.isFetching ? 'Regenerating…' : '↻ Regenerate'}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

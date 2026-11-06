@@ -46,7 +46,7 @@ async function send(opts: SendOptions) {
 function baseTemplate(body: string): string {
   return `<!DOCTYPE html><html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LectureCraft</title>
+<title>LectureSuite</title>
 <style>
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:24px}
   .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;max-width:480px;margin:0 auto;padding:32px}
@@ -58,9 +58,9 @@ function baseTemplate(body: string): string {
   .code{font-family:monospace;background:#f3f4f6;padding:12px 16px;border-radius:8px;font-size:16px;font-weight:700;letter-spacing:4px;text-align:center;margin:16px 0}
 </style></head>
 <body><div class="card">
-  <div class="logo">⚡ LectureCraft</div>
+  <div class="logo">⚡ LectureSuite</div>
   ${body}
-  <div class="footer">This email was sent by LectureCraft. If you did not request this, please ignore it.<br>© ${new Date().getFullYear()} LectureCraft. All rights reserved.</div>
+  <div class="footer">This email was sent by LectureSuite. If you did not request this, please ignore it.<br>© ${new Date().getFullYear()} LectureSuite. All rights reserved.</div>
 </div></body></html>`
 }
 
@@ -69,11 +69,11 @@ export const emailService = {
     const link = `${env.FRONTEND_URL}/verify-email?token=${token}`
     await send({
       to,
-      subject: 'Verify your LectureCraft email',
+      subject: 'Verify your LectureSuite email',
       html: baseTemplate(`
         <h2>Verify your email address</h2>
         <p>Hi ${name},</p>
-        <p>Welcome to LectureCraft! Please verify your email address to activate your account.</p>
+        <p>Welcome to LectureSuite! Please verify your email address to activate your account.</p>
         <a href="${link}" class="btn">Verify Email Address</a>
         <p>Or paste this link in your browser:<br><a href="${link}">${link}</a></p>
         <p>This link expires in <strong>24 hours</strong>.</p>
@@ -85,11 +85,11 @@ export const emailService = {
     const link = `${env.FRONTEND_URL}/reset-password?token=${token}`
     await send({
       to,
-      subject: 'Reset your LectureCraft password',
+      subject: 'Reset your LectureSuite password',
       html: baseTemplate(`
         <h2>Reset your password</h2>
         <p>Hi ${name},</p>
-        <p>We received a request to reset the password for your LectureCraft account. Click the button below to create a new password.</p>
+        <p>We received a request to reset the password for your LectureSuite account. Click the button below to create a new password.</p>
         <a href="${link}" class="btn">Reset Password</a>
         <p>Or paste this link in your browser:<br><a href="${link}">${link}</a></p>
         <p>This link expires in <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email.</p>
@@ -101,10 +101,10 @@ export const emailService = {
     const link = `${env.FRONTEND_URL}/accept-invitation?token=${token}`
     await send({
       to,
-      subject: `You've been invited to join ${institutionName} on LectureCraft`,
+      subject: `You've been invited to join ${institutionName} on LectureSuite`,
       html: baseTemplate(`
         <h2>You've been invited!</h2>
-        <p><strong>${inviterName}</strong> has invited you to join <strong>${institutionName}</strong> on LectureCraft.</p>
+        <p><strong>${inviterName}</strong> has invited you to join <strong>${institutionName}</strong> on LectureSuite.</p>
         <a href="${link}" class="btn">Accept Invitation</a>
         <p>This invitation expires in <strong>7 days</strong>.</p>
       `),
@@ -127,7 +127,7 @@ export const emailService = {
       subject: `${freqLabel} Report: ${opts.reportName}`,
       html: baseTemplate(`
         <h2>${opts.reportName}</h2>
-        <p>Your ${freqLabel.toLowerCase()} report from LectureCraft is attached. It covers your teaching activity, AI usage, and assessment data for the reporting period.</p>
+        <p>Your ${freqLabel.toLowerCase()} report from LectureSuite is attached. It covers your teaching activity, AI usage, and assessment data for the reporting period.</p>
         <p>Log in to your dashboard to view full analytics and manage your scheduled reports.</p>
         <a href="${env.FRONTEND_URL}/analytics/reports" class="btn">View Analytics</a>
       `),
@@ -159,11 +159,11 @@ export const emailService = {
   async sendWelcome(to: string, name: string, institutionName: string) {
     await send({
       to,
-      subject: `Welcome to LectureCraft, ${name}!`,
+      subject: `Welcome to LectureSuite, ${name}!`,
       html: baseTemplate(`
-        <h2>Welcome to LectureCraft!</h2>
+        <h2>Welcome to LectureSuite!</h2>
         <p>Hi ${name},</p>
-        <p>Your institution <strong>${institutionName}</strong> is now set up on LectureCraft. You can start generating AI-powered academic content right away.</p>
+        <p>Your institution <strong>${institutionName}</strong> is now set up on LectureSuite. You can start generating AI-powered academic content right away.</p>
         <a href="${env.FRONTEND_URL}/dashboard" class="btn">Go to Dashboard</a>
         <p>Here's what you can do:</p>
         <ul style="color:#4b5563;font-size:14px;line-height:1.8">

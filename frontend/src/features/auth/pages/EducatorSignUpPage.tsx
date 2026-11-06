@@ -17,8 +17,8 @@ const FEATURES = [
 ]
 
 const ROLES = [
-  { value: 'LECTURER',           label: 'Lecturer',            description: 'Full access to all teaching and AI tools' },
-  { value: 'TEACHING_ASSISTANT', label: 'Teaching Assistant',  description: 'Support lecturers with grading and course content' },
+  { value: 'lecturer',            label: 'Lecturer',            description: 'Full access to all teaching and AI tools' },
+  { value: 'teaching_assistant',  label: 'Teaching Assistant',  description: 'Support lecturers with grading and course content' },
 ] as const
 
 function PasswordStrength({ password }: { password: string }) {
@@ -54,7 +54,7 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function EducatorSignUpPage() {
-  useEffect(() => { document.title = 'Educator Sign Up — LectureCraft' }, [])
+    useEffect(() => { document.title = 'Educator Sign Up — LectureSuite' }, [])
 
   const { login }   = useAuth()
   const navigate    = useNavigate()
@@ -63,7 +63,7 @@ export default function EducatorSignUpPage() {
     firstName: '',
     lastName:  '',
     email:     '',
-    role:      'LECTURER' as 'LECTURER' | 'TEACHING_ASSISTANT',
+    role:      'lecturer' as 'lecturer' | 'teaching_assistant',
     password:  '',
     confirm:   '',
   })
@@ -110,12 +110,12 @@ export default function EducatorSignUpPage() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* ── Left branding panel ───────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[52%] shrink-0 flex-col justify-between bg-gradient-to-br from-slate-900 via-primary/90 to-slate-900 p-12 text-white">
+      <div className="hidden lg:flex lg:w-[52%] shrink-0 flex-col justify-between bg-linear-to-br from-slate-900 via-primary/90 to-slate-900 p-12 text-white">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
             <Lightbulb className="h-5 w-5 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">LectureCraft</span>
+          <span className="text-lg font-bold tracking-tight">LectureSuite</span>
         </div>
 
         <div className="space-y-8">
@@ -150,7 +150,7 @@ export default function EducatorSignUpPage() {
 
         <blockquote className="rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
           <p className="text-sm text-white/80 italic leading-relaxed">
-            "I'm a private tutor and LectureCraft has completely changed how I prepare materials. I generate a full lesson plan in under two minutes."
+            "I'm a private tutor and LectureSuite has completely changed how I prepare materials. I generate a full lesson plan in under two minutes."
           </p>
           <footer className="mt-3 text-xs text-white/50 font-medium">
             Emeka Eze · Independent Educator
@@ -165,10 +165,10 @@ export default function EducatorSignUpPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Lightbulb className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-base font-bold">LectureCraft</span>
+          <span className="text-base font-bold">LectureSuite</span>
         </div>
 
-        <div className="w-full max-w-[420px] space-y-6">
+        <div className="w-full max-w-105 space-y-6">
           <div className="space-y-1.5">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Create your educator account</h2>
             <p className="text-sm text-muted-foreground">Personal workspace — no institution needed</p>
@@ -221,7 +221,7 @@ export default function EducatorSignUpPage() {
                       'flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors',
                       form.role === r.value
                         ? 'border-primary bg-primary/5 text-foreground'
-                        : 'border-[#E2DDD6] bg-white text-foreground hover:border-primary/40',
+                        : 'border-border bg-input text-foreground hover:border-primary/40',
                     )}
                   >
                     <span className="text-sm font-medium">{r.label}</span>

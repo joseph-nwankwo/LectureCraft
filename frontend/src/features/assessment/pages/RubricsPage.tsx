@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BarChart2 } from 'lucide-react'
 import { assessmentApi, type Rubric, type RubricLevel } from '../../../lib/api/assessment.api'
+import { Button } from '@/components/design-system/buttons/Button'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
 
 function RubricCard({ rubric, onEdit, onDelete }: {
   rubric: Rubric
@@ -227,26 +230,23 @@ export function RubricsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Rubrics</h1>
-        <div className="flex gap-2">
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader
+        title="Rubrics"
+        description="Create and manage marking rubrics for your assessments."
+        actions={(
+          <div className="flex flex-wrap gap-2">
           <input value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search…"
             className="border border-border rounded-lg px-3 py-1.5 text-sm bg-background focus:outline-none" />
-          <button onClick={() => setShowModal(true)}
-            className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-sm font-medium hover:opacity-90">
-            + New Rubric
-          </button>
-        </div>
-      </div>
+            <Button size="sm" variant="primary" onClick={() => setShowModal(true)}>New Rubric</Button>
+          </div>
+        )}
+      />
 
       {isLoading && <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}</div>}
       {!isLoading && rubrics.length === 0 && (
-        <div className="text-center py-16 text-muted-foreground">
-          <BarChart2 className="h-12 w-12 text-muted-foreground/40 mb-3" />
-          <p className="text-lg font-medium">No rubrics yet</p>
-        </div>
+        <EmptyState icon={<BarChart2 className="h-6 w-6" />} title="No rubrics yet" description="Create a rubric to structure your assessment marking." size="lg" />
       )}
       <div className="space-y-4">
         {rubrics.map((r) => (

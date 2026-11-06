@@ -36,7 +36,7 @@ export default function FeatureFlagsPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <Flag className="w-6 h-6 text-indigo-600" />
+        <Flag className="w-6 h-6 text-primary" />
         <h1 className="text-2xl font-bold text-gray-900">Feature Flags</h1>
       </div>
 
@@ -60,7 +60,7 @@ export default function FeatureFlagsPage() {
                       onClick={() => flag.planId && toggleFlag(flag)}
                       disabled={!flag.planId || saving === flag.id}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                        flag.enabled ? 'bg-indigo-600' : 'bg-gray-300'
+                        flag.enabled ? 'bg-primary' : 'bg-gray-300'
                       } ${!flag.planId ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
                         flag.enabled ? 'translate-x-6' : 'translate-x-1'

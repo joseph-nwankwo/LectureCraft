@@ -6,6 +6,7 @@ import { Alert } from '@/components/design-system/feedback/Alert'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 import { EmptyState } from '@/components/design-system/cards/EmptyState'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 
 interface Role {
   id: string
@@ -148,16 +149,12 @@ export default function RoleManagementPage() {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Roles & Permissions
-          </h1>
-          <p className="text-sm text-muted-foreground">{roles.length} roles · {perms.length} permissions</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Roles & Permissions"
+        description={`${roles.length} roles · ${perms.length} permissions`}
+        icon={<Shield className="h-5 w-5" />}
+      />
 
       <div className="flex items-start gap-1.5 rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-4 py-3">
         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
@@ -169,7 +166,7 @@ export default function RoleManagementPage() {
       {error && <Alert variant="error" description={error} />}
 
       {loading ? (
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="col-span-4 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
           <div className="col-span-8"><Skeleton className="h-[600px] rounded-xl" /></div>
         </div>
@@ -178,7 +175,7 @@ export default function RoleManagementPage() {
       ) : (
         <div className="grid grid-cols-12 gap-6">
           {/* Role list */}
-          <div className="col-span-12 sm:col-span-4 space-y-2">
+          <div className="space-y-2 lg:col-span-4">
             {roles.map((role) => (
               <RoleCard
                 key={role.id}
@@ -190,7 +187,7 @@ export default function RoleManagementPage() {
           </div>
 
           {/* Permission matrix */}
-          <div className="col-span-12 sm:col-span-8">
+          <div className="lg:col-span-8">
             {!selectedRole ? (
               <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-border">
                 <p className="text-sm text-muted-foreground">Select a role to view permissions</p>

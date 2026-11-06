@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 
 // ── Palette ──────────────────────────────────────────────────────────────────
-export const PALETTE = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#14b8a6', '#f97316']
+export const PALETTE = ['#1D4ED8', '#1A9158', '#E8A020', '#DC4026', '#7B4FD8', '#0D8FAC', '#E91E8C', '#F97316']
 
 // ── Generic types ────────────────────────────────────────────────────────────
 export interface ChartProps<T = Record<string, unknown>> {
@@ -240,7 +240,7 @@ export function DateRangePicker({ from, to, onChange }: {
 }
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
-export function ProgressBar({ value, max, label, color = '#6366f1' }: {
+export function ProgressBar({ value, max, label, color = 'var(--primary)' }: {
   value: number; max: number; label?: string; color?: string
 }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0

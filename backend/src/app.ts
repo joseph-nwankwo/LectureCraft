@@ -88,9 +88,9 @@ app.use(helmet({
 }))
 app.use(securityHeaders)
 
-const allowedOrigins = env.NODE_ENV === 'development'
+const allowedOrigins: boolean | string[] = env.NODE_ENV === 'development'
   ? true
-  : [env.FRONTEND_URL, env.SCHOLARCRAFT_URL]
+  : [...new Set([env.FRONTEND_URL, env.SCHOLARCRAFT_URL, ...env.ADDITIONAL_FRONTEND_URLS])]
 
 app.use(cors({
   origin:         allowedOrigins,
@@ -300,7 +300,7 @@ async function bootstrap() {
     logger.info('Socket.IO gateway initialized')
 
     httpServer.listen(env.PORT, () => {
-      logger.info(`LectureCraft API running on http://localhost:${env.PORT}`)
+      logger.info(`LectureSuite API running on http://localhost:${env.PORT}`)
       logger.info(`Environment: ${env.NODE_ENV}`)
     })
   } catch (err) {

@@ -12,3 +12,11 @@ data:
   TRIAL_DAYS: "14"
   BILLING_DEFAULT_PROVIDER: stripe
   LOG_LEVEL: info
+  # Domain config — update values to lecturesuite.app once DNS + TLS are confirmed.
+  # Also update: SSO portal allowlist, Stripe/Paystack/Flutterwave webhook endpoints.
+  FRONTEND_URL: "https://lecturecraft.app"
+  APP_URL: "https://api.lecturecraft.app"
+  # Migration: set ADDITIONAL_FRONTEND_URLS to allow both domains simultaneously.
+  # Activate only after DNS + TLS are confirmed for lecturesuite.app.
+  # ADDITIONAL_FRONTEND_URLS: "https://lecturesuite.app"
+  ADDITIONAL_FRONTEND_URLS: ""

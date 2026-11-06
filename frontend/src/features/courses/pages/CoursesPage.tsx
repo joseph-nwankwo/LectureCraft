@@ -12,6 +12,8 @@ import { TextField } from '@/components/design-system/inputs/TextField'
 import { Alert } from '@/components/design-system/feedback/Alert'
 import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 import { ROUTES, buildRoute } from '@/constants/routes'
 
 const LEVELS = ['ND', 'HND', 'BSC', 'MSC', 'MBA', 'PHD', 'PROFESSIONAL']
@@ -145,7 +147,7 @@ function CourseCard({ course, onEdit, onDelete, onRegenerate, onViewStudents }: 
 
   return (
     <div
-      className="group relative flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md cursor-pointer"
+      className="group relative flex flex-col gap-3 rounded-lg border border-border bg-card p-5 shadow-card transition-shadow hover:shadow-hover cursor-pointer"
       onClick={() => navigate(buildRoute(ROUTES.LC_COURSE_DETAIL, { id: course.id }))}
     >
       <div className="flex items-start justify-between gap-2">
@@ -322,19 +324,16 @@ export default function CoursesPage() {
   })
 
   return (
-    <div className="mx-auto max-w-350 p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Courses</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {total > 0 ? `${total} course${total !== 1 ? 's' : ''}` : 'No courses yet'}
-          </p>
-        </div>
-        <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={() => { setError(''); setCreate(true) }}>
-          New Course
-        </Button>
-      </div>
+    <div className="mx-auto max-w-[1600px] space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Courses"
+        description="Manage your courses and teaching materials."
+        actions={(
+          <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={() => { setError(''); setCreate(true) }}>
+            Create Course
+          </Button>
+        )}
+      />
 
       {error && <Alert variant="error" description={error} />}
 
@@ -358,21 +357,20 @@ export default function CoursesPage() {
       {/* Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" />)}
+          {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-lg" />)}
         </div>
       ) : courses.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 py-20 text-center">
-          <BookOpen className="mb-4 h-12 w-12 text-muted-foreground/40" />
-          <p className="text-base font-medium text-foreground">{search ? 'No courses match your search' : 'No courses yet'}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {search ? 'Try a different search term' : 'Create your first course to get started'}
-          </p>
-          {!search && (
-            <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} className="mt-5" onClick={() => { setError(''); setCreate(true) }}>
+        <EmptyState
+          icon={<BookOpen className="h-6 w-6" />}
+          title={search ? 'No courses match your search' : 'No courses yet'}
+          description={search ? 'Try a different search term' : 'Create your first course to get started'}
+          action={!search && (
+            <Button variant="primary" leftIcon={<Plus className="h-4 w-4" />} onClick={() => { setError(''); setCreate(true) }}>
               Create Course
             </Button>
           )}
-        </div>
+          size="lg"
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {courses.map((c) => (

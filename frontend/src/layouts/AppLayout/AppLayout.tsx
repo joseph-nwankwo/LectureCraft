@@ -11,7 +11,7 @@ import { SkeletonPage } from '@/components/design-system/feedback/Skeleton'
 
 function PageSuspense() {
   return (
-    <div className="p-6">
+    <div className="mx-auto w-full max-w-[1536px] p-4 sm:p-6">
       <SkeletonPage />
     </div>
   )
@@ -21,32 +21,28 @@ export default function AppLayout() {
   return (
     <CommandPaletteProvider>
       <SidebarProvider>
-        <div className="flex flex-col h-screen overflow-hidden bg-background">
-          {/* Full-width top nav */}
-          <TopNav />
+        <div className="flex h-screen overflow-hidden bg-background">
+          {/* Sidebar — full height, extends to top */}
+          <Sidebar />
 
-          {/* Below nav: sidebar + content */}
-          <div className="flex flex-1 overflow-hidden min-h-0">
-            {/* Desktop Sidebar */}
-            <Sidebar />
+          {/* Mobile Navigation Drawer */}
+          <MobileNav />
 
-            {/* Mobile Navigation Drawer */}
-            <MobileNav />
+          {/* Right column: top nav + scrollable content */}
+          <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+            <TopNav />
 
-            {/* Scrollable page area */}
-            <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-              <main
-                id="main-content"
-                className="flex-1 overflow-y-auto scrollbar-thin bg-muted/20"
-                tabIndex={-1}
-              >
-                <Suspense fallback={<PageSuspense />}>
-                  <Outlet />
-                </Suspense>
-              </main>
+            <main
+              id="main-content"
+              className="flex-1 overflow-y-auto scrollbar-thin bg-background"
+              tabIndex={-1}
+            >
+              <Suspense fallback={<PageSuspense />}>
+                <Outlet />
+              </Suspense>
+            </main>
 
-              <Footer />
-            </div>
+            <Footer />
           </div>
         </div>
 

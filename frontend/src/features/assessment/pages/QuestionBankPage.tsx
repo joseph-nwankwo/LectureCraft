@@ -7,7 +7,7 @@ import { ROUTES } from '../../../constants/routes'
 
 const TYPE_COLORS: Record<QuestionType, string> = {
   MCQ: 'bg-blue-100 text-blue-800', SHORT_ANSWER: 'bg-purple-100 text-purple-800',
-  LONG_ANSWER: 'bg-indigo-100 text-indigo-800', TRUE_FALSE: 'bg-green-100 text-green-800',
+  LONG_ANSWER: 'bg-primary/10 text-primary', TRUE_FALSE: 'bg-green-100 text-green-800',
   FILL_BLANK: 'bg-yellow-100 text-yellow-800', MATCHING: 'bg-orange-100 text-orange-800',
   ESSAY: 'bg-pink-100 text-pink-800', CALCULATION: 'bg-teal-100 text-teal-800',
 }

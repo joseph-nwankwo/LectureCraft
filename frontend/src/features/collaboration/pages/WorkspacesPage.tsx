@@ -48,7 +48,7 @@ export default function WorkspacesPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700"
+          className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"
         >
           + New Workspace
         </button>
@@ -93,7 +93,7 @@ export default function WorkspacesPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)} className="flex-1 border rounded-lg px-4 py-2 text-sm">Cancel</button>
-                <button type="submit" disabled={creating} className="flex-1 bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                <button type="submit" disabled={creating} className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
                   {creating ? 'Creating...' : 'Create'}
                 </button>
               </div>
@@ -107,7 +107,7 @@ export default function WorkspacesPage() {
       ) : workspaces.length === 0 ? (
         <div className="text-center py-16 border-2 border-dashed rounded-xl">
           <p className="text-gray-400 mb-4">No workspaces yet. Create one to get started.</p>
-          <button onClick={() => setShowCreate(true)} className="text-indigo-600 font-medium text-sm">
+          <button onClick={() => setShowCreate(true)} className="text-primary font-medium text-sm">
             + Create your first workspace
           </button>
         </div>
@@ -120,7 +120,7 @@ export default function WorkspacesPage() {
               className="bg-white border rounded-xl p-5 cursor-pointer hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-lg font-bold text-indigo-600">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-lg font-bold text-primary">
                   {ws.name[0]}
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${visibilityColor(ws.visibility)}`}>

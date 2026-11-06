@@ -7,6 +7,7 @@ import { rotateRefreshToken, revokeRefreshToken, signAccessToken, createRefreshT
 import { asyncHandler } from '../utils/asyncHandler'
 import { AppError } from '../utils/errors'
 import { prisma } from '../config/database'
+import { redis } from '../config/redis'
 import { env } from '../config/env'
 import type { AuthPayload } from '../middleware/auth.middleware'
 
@@ -201,26 +202,61 @@ export const authController = {
 
   // ── SSO callback — called by portal launch redirect ───────────────────────
   // Validates a short-lived launch token issued by uamsatech.com, finds or
-  // provisions the user in the craftsuite DB, issues a LectureCraft session,
+  // provisions the user in the craftsuite DB, issues a LectureSuite session,
   // then redirects the browser to the frontend with the tokens in the URL.
 
   ssoCallback: asyncHandler(async (req: Request, res: Response) => {
     const token = req.query.token as string | undefined
     if (!token) throw AppError.badRequest('Missing launch token')
 
-    let payload: { sub?: string; email?: string; type?: string; target?: string }
+    let payload: { sub?: unknown; email?: unknown; type?: unknown; target?: unknown; jti?: unknown; iss?: unknown; aud?: unknown; exp?: unknown }
     try {
-      payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as typeof payload
+      // HS256 only. maxAge caps the lifetime at 5 min from iat (and requires iat),
+      // independent of whatever exp the token carries.
+      payload = jwt.verify(token, env.CRAFT_LAUNCH_SECRET, { algorithms: ['HS256'], maxAge: '5m' }) as typeof payload
     } catch {
       throw AppError.unauthorized('Invalid or expired launch token')
     }
+    if (typeof payload !== 'object' || payload === null) {
+      throw AppError.unauthorized('Invalid or expired launch token')
+    }
 
-    if (payload.type !== 'product_launch' || payload.target !== 'lecturercraft') {
+    if (payload.type !== 'product_launch' || payload.target !== 'lecturesuite') {
       throw AppError.unauthorized('Token not valid for this product')
     }
 
-    const email = payload.email
-    if (!email) throw AppError.badRequest('Missing email in launch token')
+    if (payload.iss !== 'uamsatech') {
+      throw AppError.unauthorized('Token not valid for this product')
+    }
+
+    const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud]
+    if (!aud.includes('lecturesuite')) {
+      throw AppError.unauthorized('Token not valid for this product')
+    }
+
+    if (typeof payload.exp !== 'number') throw AppError.unauthorized('Launch token missing expiry')
+
+    const jti = payload.jti
+    if (typeof jti !== 'string' || jti.length === 0) throw AppError.unauthorized('Launch token missing jti')
+
+    if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
+      throw AppError.unauthorized('Launch token missing subject')
+    }
+
+    const email = typeof payload.email === 'string' ? payload.email : ''
+    if (!email || !email.includes('@')) throw AppError.badRequest('Missing email in launch token')
+
+    // Replay protection: atomically record the jti (SET NX). Fails CLOSED — if
+    // Redis is unavailable the launch is refused rather than accepted unchecked.
+    // TTL is 2x the 5-min token lifetime to absorb clock skew with the portal.
+    let stored: string | null
+    try {
+      stored = await redis.set(`sso:jti:${jti}`, '1', 'EX', 600, 'NX')
+    } catch (err) {
+      console.error('SSO replay protection unavailable (Redis):', (err as Error).message)
+      throw new AppError('Single sign-on is temporarily unavailable', 503)
+    }
+    if (stored !== 'OK') throw AppError.unauthorized('Launch token already used')
 
     let user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
@@ -237,8 +273,8 @@ export const authController = {
     }
 
     const productRole = await prisma.userProductRole.upsert({
-      where:  { userId_product: { userId: user.id, product: 'lecturercraft' } },
-      create: { userId: user.id, product: 'lecturercraft', role: 'LECTURER' },
+      where:  { userId_product: { userId: user.id, product: 'lecturesuite' } },
+      create: { userId: user.id, product: 'lecturesuite', role: 'LECTURER' },
       update: {},
     })
 

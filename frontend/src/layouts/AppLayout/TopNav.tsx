@@ -1,7 +1,7 @@
 import {
   Bell, Plus, ChevronDown, Menu, User, Settings, LogOut,
   CreditCard, Key, Monitor, Moon, Sun, HelpCircle, ExternalLink,
-  Sparkles,
+  PanelLeftClose, PanelLeftOpen, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ROUTES } from '@/constants/routes'
@@ -17,9 +17,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useNavigate } from 'react-router-dom'
 
-const NAVY = '#0B1E3D'
-const GOLD = '#C9A227'
-
 function useGreeting() {
   const h = new Date().getHours()
   if (h < 12) return 'Good morning'
@@ -30,7 +27,7 @@ function useGreeting() {
 export function TopNav() {
   const { user, logout } = useAuth()
   const { theme, setTheme } = useTheme()
-  const { openMobile } = useSidebar()
+  const { collapsed, toggle, openMobile } = useSidebar()
   const { setOpen: openPalette } = useCommandPalette()
   const navigate = useNavigate()
   const greeting = useGreeting()
@@ -47,64 +44,47 @@ export function TopNav() {
         .slice(0, 2)
     : 'U'
 
-  const iconBtn: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    width: 32, height: 32, borderRadius: 7, background: 'transparent',
-    border: '1px solid rgba(255,255,255,0.18)', cursor: 'pointer', color: '#fff',
-    flexShrink: 0, transition: 'background 0.15s',
-  }
-
   return (
-    <header style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      height: 56, flexShrink: 0, padding: '0 20px',
-      background: NAVY, borderBottom: `3px solid ${GOLD}`,
-      fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-      position: 'sticky', top: 0, zIndex: 40,
-    }}>
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/95 px-4 shadow-nav backdrop-blur-sm sm:px-5"
+      style={{ fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
 
-      {/* Left: mobile hamburger + brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        {/* Hamburger — only visible on mobile when sidebar is hidden */}
+      {/* Left: shell controls and mobile brand */}
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={toggle}
+          className="hidden h-8 w-8 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <PanelLeftOpen size={17} aria-hidden /> : <PanelLeftClose size={17} aria-hidden />}
+        </button>
         <button
           type="button"
           onClick={openMobile}
-          className="lg:hidden"
-          style={{ ...iconBtn, border: 'none', display: undefined }}
+          className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
           aria-label="Open navigation"
         >
           <Menu size={18} />
         </button>
-
-        {/* Brand */}
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-          <span style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: 20, fontWeight: 700, color: '#fff', letterSpacing: -0.3, whiteSpace: 'nowrap' }}>
-            Lecture<span style={{ color: GOLD }}>Craft</span>
-          </span>
-          <span className="hidden sm:block" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, color: GOLD, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 2 }}>
-            UAMSATECH · CRAFT SUITE
-          </span>
-        </div>
+        <span className="font-display whitespace-nowrap text-lg font-bold leading-none tracking-tight text-brand-navy lg:hidden">
+          Lecture<span className="text-brand-gold">Suite</span>
+        </span>
       </div>
 
       {/* Right: actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <div className="flex items-center gap-2 ml-auto">
 
         {/* Command palette search — desktop */}
         <button
           type="button"
           onClick={() => openPalette(true)}
-          className="hidden md:flex"
-          style={{
-            height: 32, alignItems: 'center', gap: 8, borderRadius: 7,
-            border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
-            padding: '0 12px', cursor: 'pointer', color: 'rgba(255,255,255,0.55)',
-            fontFamily: "'IBM Plex Mono', monospace", fontSize: 11,
-          }}
+          className="hidden h-8 cursor-pointer items-center gap-2 rounded-md border border-border bg-muted/40 px-3 text-text-placeholder transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring md:flex"
+          style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }}
           aria-label="Open command palette"
         >
           Search anything…
-          <kbd style={{ borderRadius: 4, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(0,0,0,0.2)', padding: '0 5px', fontFamily: 'inherit', fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
+          <kbd className="rounded border border-border bg-background px-1 text-[10px] text-text-tertiary" style={{ fontFamily: 'inherit' }}>
             ⌘K
           </kbd>
         </button>
@@ -113,14 +93,8 @@ export function TopNav() {
         <button
           type="button"
           onClick={() => navigate(ROUTES.AI_STUDIO)}
-          className="hidden sm:flex"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, height: 32,
-            padding: '0 14px', borderRadius: 7, border: 'none',
-            background: '#0B1E3D', cursor: 'pointer',
-            fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12,
-            color: '#fff', fontWeight: 600,
-          }}
+          className="hidden h-8 cursor-pointer items-center gap-1.5 rounded-md border-none px-3.5 text-xs font-bold transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring sm:flex"
+          style={{ background: 'var(--brand-gold)', color: 'var(--brand-navy)', fontFamily: "'IBM Plex Sans', sans-serif" }}
         >
           <Sparkles size={13} />
           <span className="hidden md:block">Generate</span>
@@ -129,7 +103,11 @@ export function TopNav() {
         {/* Quick Create */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" style={iconBtn} aria-label="Quick create">
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground/70 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Quick create"
+            >
               <Plus size={16} />
             </button>
           </DropdownMenuTrigger>
@@ -149,22 +127,21 @@ export function TopNav() {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" style={{ ...iconBtn, position: 'relative' }} aria-label={`${unreadCount} notifications`}>
+            <button
+              type="button"
+              className="relative flex h-8 w-8 items-center justify-center rounded-md border border-border text-foreground/70 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`${unreadCount} notifications`}
+            >
               <Bell size={16} />
               {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -3, right: -3,
-                  width: 16, height: 16, borderRadius: '50%',
-                  background: GOLD, color: NAVY,
-                  fontSize: 9, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold"
+                  style={{ background: 'var(--brand-gold)', color: 'var(--brand-navy)' }}>
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 p-0">
+          <DropdownMenuContent align="end" className="w-[calc(100vw-1rem)] max-w-80 p-0">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <span className="text-sm font-semibold">Notifications</span>
               <button type="button" className="text-xs text-primary hover:underline">Mark all read</button>
@@ -194,8 +171,8 @@ export function TopNav() {
         </DropdownMenu>
 
         {/* Online indicator */}
-        <span className="hidden lg:flex items-center gap-1" style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: isOnline ? '#22c55e' : '#ef4444' }} />
+        <span className="hidden lg:flex items-center gap-1 text-[10px] text-text-tertiary" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: isOnline ? 'var(--success)' : 'var(--error)' }} />
           {isOnline ? 'Online' : 'Offline'}
         </span>
 
@@ -204,14 +181,17 @@ export function TopNav() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 7, padding: '3px 6px 3px 3px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+              className="flex cursor-pointer items-center gap-1.5 rounded-md border-none bg-transparent px-1.5 py-1 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="User menu"
             >
               <Avatar className="h-7 w-7">
                 <AvatarImage src={(user as unknown as { avatarUrl?: string })?.avatarUrl ?? undefined} />
-                <AvatarFallback style={{ fontSize: 11, background: `${GOLD}25`, color: GOLD, fontWeight: 700 }}>{initials}</AvatarFallback>
+                <AvatarFallback className="text-[11px] font-bold"
+                  style={{ background: 'oklch(from var(--brand-gold) l c h / 0.15)', color: 'var(--brand-navy)' }}>
+                  {initials}
+                </AvatarFallback>
               </Avatar>
-              <ChevronDown size={12} style={{ color: 'rgba(255,255,255,0.5)' }} className="hidden sm:block" />
+              <ChevronDown size={12} className="hidden sm:block text-text-tertiary" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">

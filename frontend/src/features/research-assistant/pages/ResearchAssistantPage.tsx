@@ -63,7 +63,7 @@ async function fetchCrossRef(query: string, filter: LitFilter): Promise<CrossRef
       : ''
   const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=7&sort=relevance${filterParam}&select=title,author,published,DOI,container-title,volume,issue,page,is-referenced-by-count`
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'LectureCraft (mailto:support@lecturecraft.ai)' },
+    headers: { 'User-Agent': 'LectureSuite (mailto:support@lecturecraft.ai)' },
   })
   if (!res.ok) throw new Error('CrossRef request failed')
   const data = await res.json() as { message: { items: CrossRefItem[] } }
@@ -212,7 +212,7 @@ function CitationPanel({
   }
 
   return (
-    <div className="flex h-full flex-col border-l border-border bg-card w-72 shrink-0">
+    <div className="flex h-full w-full shrink-0 flex-col border-l border-border bg-card lg:w-72">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <BookOpen className="h-4 w-4 text-emerald-600" />
@@ -591,16 +591,16 @@ export default function ResearchAssistantPage() {
   const domainShort = domain === DOMAINS[0] ? 'All fields' : domain.split('/')[0].trim()
 
   return (
-    <div className="flex h-[calc(100vh-56px)]">
+    <div className="flex h-[calc(100vh-56px)] min-w-0 bg-surface-1">
 
       {/* ── Main chat column ────────────────────────────────────────────── */}
       <div className="flex flex-1 flex-col min-w-0">
 
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3 gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-700">
-              <FlaskConical className="h-4 w-4 text-white" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <FlaskConical className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
               <p className="text-sm font-semibold">Research Assistant</p>
@@ -619,7 +619,7 @@ export default function ResearchAssistantPage() {
                 <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', domainOpen && 'rotate-180')} />
               </button>
               {domainOpen && (
-                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border bg-card shadow-lg py-1">
+              <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-card py-1 shadow-dropdown">
                   {DOMAINS.map((d) => (
                     <button key={d} type="button"
                       onClick={() => { setDomain(d); setDomainOpen(false) }}

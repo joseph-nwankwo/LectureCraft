@@ -1,10 +1,10 @@
-# LectureCraft Design System
+# LectureSuite Design System
 
 ## Product Context
-LectureCraft is an AI-powered academic content platform for university/polytechnic/college educators in the UAMSATech suite. Key features: AI content generation (lecture notes, exams, assignments, rubrics), course management, analytics, document library, plagiarism detection. Target users: Nigerian/African university lecturers.
+LectureSuite is an AI-powered academic content platform for university/polytechnic/college educators in the UAMSATech suite. Key features: AI content generation (lecture notes, exams, assignments, rubrics), course management, analytics, document library, plagiarism detection. Target users: Nigerian/African university lecturers.
 
 ## Visual Brand
-- **Brand name:** LectureCraft by UAMSATech
+- **Brand name:** LectureSuite by UAMSATech
 - **Logo mark:** Lightbulb icon (lucide `Lightbulb`) in a small rounded square `bg-primary`
 - **Feel:** Professional, clean, academic, productivity-focused
 - **Tone:** Calm, trustworthy, intelligent — not flashy or playful

@@ -53,10 +53,10 @@ export function GeneratorLayout({
   const wordCount = content.split(/\s+/).filter(Boolean).length
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-background lg:flex-row">
       {/* ── Left pane: Config form ─────────────────────────────────── */}
-      <div className="w-full lg:w-95 shrink-0 flex flex-col border-b lg:border-b-0 lg:border-r border-[#E2DDD6] bg-[#F7F5F0] overflow-y-auto max-h-[50vh] lg:max-h-none">
-        <div className="p-5 border-b border-[#E2DDD6]">
+      <div className="flex max-h-[50vh] w-full shrink-0 flex-col overflow-y-auto border-b border-border bg-surface-1 lg:max-h-none lg:w-95 lg:border-b-0 lg:border-r">
+        <div className="border-b border-border p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
               <Icon className="h-5 w-5 text-primary" />
@@ -68,11 +68,11 @@ export function GeneratorLayout({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {children}
         </div>
 
-        <div className="p-5 border-t border-[#E2DDD6] space-y-2.5">
+        <div className="p-5 border-t border-border space-y-2.5">
           {isGenerating ? (
             <Button variant="danger" className="w-full" leftIcon={<Square className="h-4 w-4" />} onClick={onCancel}>
               Stop generating
@@ -90,7 +90,7 @@ export function GeneratorLayout({
               )}
             </div>
           ) : (
-            <Button variant="primary" className="w-full bg-[#0B1E3D] hover:bg-[#0B1E3D]/90 border-[#0B1E3D]" leftIcon={<Sparkles className="h-4 w-4" />}
+            <Button variant="primary" className="w-full" leftIcon={<Sparkles className="h-4 w-4" />}
               onClick={onGenerate} disabled={!formValid}>
               Generate
             </Button>
@@ -99,9 +99,9 @@ export function GeneratorLayout({
       </div>
 
       {/* ── Right pane: Output ─────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-muted/20">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-1">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-background shrink-0">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 sm:px-5">
           <div className="flex items-center gap-3">
             <BookOpen className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Output</span>
@@ -148,7 +148,7 @@ export function GeneratorLayout({
         </div>
 
         {/* Content area */}
-        <div className="flex-1 overflow-y-auto bg-surface-1 p-6 lg:p-10">
+        <div className="flex-1 overflow-y-auto bg-surface-1 p-4 sm:p-6 lg:p-10">
           {error && <Alert variant="error" description={error} className="mb-4 max-w-3xl mx-auto" />}
 
           {!content && !isGenerating && !error && (
@@ -160,7 +160,7 @@ export function GeneratorLayout({
           )}
 
           {(content || isGenerating) && (
-            <div className="max-w-3xl mx-auto bg-card border border-border shadow-card px-10 py-12">
+            <div className="mx-auto max-w-3xl rounded-lg border border-border bg-card px-5 py-8 shadow-card sm:px-10 sm:py-12">
               <div ref={contentRef} className={cn(
                 'prose dark:prose-invert max-w-none',
                 'prose-headings:font-bold prose-headings:text-foreground',

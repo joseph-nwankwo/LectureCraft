@@ -20,7 +20,7 @@ const docTypeConfig: Record<DocumentType, { label: string; icon: typeof FileText
   ASSIGNMENT:     { label: 'Assignment',       icon: ClipboardList, color: 'text-warning',          bg: 'bg-warning-muted' },
   EXAM:           { label: 'Exam',             icon: Award,         color: 'text-error',            bg: 'bg-error-muted' },
   RUBRIC:         { label: 'Rubric',           icon: Layout,        color: 'text-success',          bg: 'bg-success-muted' },
-  COURSE_OUTLINE: { label: 'Course Outline',   icon: BookOpen,      color: 'text-indigo-600',       bg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+  COURSE_OUTLINE: { label: 'Course Outline',   icon: BookOpen,      color: 'text-primary',          bg: 'bg-accent' },
   PRESENTATION:   { label: 'Presentation',     icon: Presentation,  color: 'text-purple-600',       bg: 'bg-purple-50 dark:bg-purple-950/30' },
   RESEARCH:       { label: 'Research',         icon: FileText,      color: 'text-teal-600',         bg: 'bg-teal-50 dark:bg-teal-950/30' },
   OTHER:          { label: 'Document',         icon: FileText,      color: 'text-muted-foreground', bg: 'bg-muted' },

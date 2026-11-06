@@ -1,5 +1,5 @@
 /**
- * Prometheus metrics for LectureCraft.
+ * Prometheus metrics for LectureSuite.
  * Run `npm install` to install prom-client (it's in package.json dependencies).
  * If prom-client is unavailable, all metrics are no-ops and /metrics returns a 503.
  */

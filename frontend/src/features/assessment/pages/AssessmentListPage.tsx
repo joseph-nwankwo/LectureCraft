@@ -5,6 +5,10 @@ import { type ReactNode } from 'react'
 import { FileEdit, ClipboardList, Pin, Target, BarChart2 } from 'lucide-react'
 import { assessmentApi, type Assessment, type AssessmentType, type AssessmentStatus } from '../../../lib/api/assessment.api'
 import { ROUTES } from '../../../constants/routes'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/cards/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 const TYPE_ICONS: Record<AssessmentType, ReactNode> = {
   QUIZ: <FileEdit className="h-6 w-6" />,
@@ -14,10 +18,8 @@ const TYPE_ICONS: Record<AssessmentType, ReactNode> = {
   SURVEY: <BarChart2 className="h-6 w-6" />,
 }
 
-const STATUS_COLORS: Record<AssessmentStatus, string> = {
-  DRAFT: 'bg-yellow-100 text-yellow-800',
-  PUBLISHED: 'bg-green-100 text-green-800',
-  ARCHIVED: 'bg-gray-100 text-gray-700',
+const STATUS_BADGES: Record<AssessmentStatus, 'success' | 'warning' | 'default'> = {
+  DRAFT: 'warning', PUBLISHED: 'success', ARCHIVED: 'default',
 }
 
 export function AssessmentListPage() {
@@ -58,13 +60,13 @@ export function AssessmentListPage() {
   const stats = (statsData as { data: { total: number; byType: Array<{ type: string; _count: number }> } } | undefined)?.data
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Assessments</h1>
-          <p className="text-sm text-muted-foreground">{stats?.total ?? 0} total</p>
-        </div>
-        <div className="flex gap-2">
+    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        title="Assessments"
+        description={`${stats?.total ?? 0} total`}
+        icon={<ClipboardList className="h-5 w-5" />}
+        actions={(
+          <div className="flex flex-wrap gap-2">
           <Link to={ROUTES.QUESTION_BANK}
             className="text-sm border border-border px-3 py-1.5 rounded-lg hover:bg-muted">
             Question Bank
@@ -73,11 +75,12 @@ export function AssessmentListPage() {
             className="bg-primary text-primary-foreground px-4 py-1.5 rounded-lg text-sm font-medium hover:opacity-90">
             + New Assessment
           </button>
-        </div>
-      </div>
+          </div>
+        )}
+      />
 
       {/* Filters */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex flex-wrap gap-2" aria-label="Assessment filters">
         <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           placeholder="Search…"
           className="border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none min-w-[160px]" />
@@ -99,19 +102,17 @@ export function AssessmentListPage() {
 
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => <div key={i} className="h-36 bg-muted rounded-xl animate-pulse" />)}
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" />)}
         </div>
       )}
 
       {!isLoading && assessments.length === 0 && (
-        <div className="text-center py-16 text-muted-foreground">
-          <ClipboardList className="h-12 w-12 text-muted-foreground/40 mb-3" />
-          <p className="text-lg font-medium">No assessments yet</p>
-          <button onClick={() => navigate(ROUTES.ASSESSMENT_BUILDER.replace(':id', 'new'))}
-            className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
-            Create First Assessment
-          </button>
-        </div>
+        <EmptyState
+          icon={<ClipboardList className="h-6 w-6" />}
+          title="No assessments yet"
+          description="Create an assessment to begin organizing questions and marks."
+          action={{ label: 'Create First Assessment', onClick: () => navigate(ROUTES.ASSESSMENT_BUILDER.replace(':id', 'new')) }}
+        />
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -119,9 +120,7 @@ export function AssessmentListPage() {
           <div key={a.id} className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow group">
             <div className="flex items-start justify-between">
               <span className="flex h-8 w-8 items-center justify-center text-muted-foreground">{TYPE_ICONS[a.type]}</span>
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLORS[a.status]}`}>
-                {a.status}
-              </span>
+              <Badge variant={STATUS_BADGES[a.status]} size="sm">{a.status}</Badge>
             </div>
             <Link to={ROUTES.ASSESSMENT_BUILDER.replace(':id', a.id)}
               className="block mt-2 font-semibold text-foreground hover:text-primary line-clamp-2">

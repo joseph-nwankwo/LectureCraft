@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardCheck, Loader2, AlertCircle, Filter } from 'lucide-react'
+import { ClipboardCheck, AlertCircle, Filter } from 'lucide-react'
 import { submissionApi, type Submission } from '@/lib/api/student.api'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 type StatusFilter = 'ALL' | Submission['status']
 
@@ -15,16 +19,6 @@ const STATUS_OPTS: { value: StatusFilter; label: string }[] = [
   { value: 'GRADED',    label: 'Graded' },
   { value: 'RETURNED',  label: 'Returned' },
 ]
-
-function statusStyle(s: Submission['status']) {
-  switch (s) {
-    case 'GRADED':    return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-    case 'SUBMITTED': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-    case 'LATE':      return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-    case 'RETURNED':  return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-    default:          return 'bg-muted text-muted-foreground'
-  }
-}
 
 function fmt(d: string | null) {
   if (!d) return '—'
@@ -48,12 +42,9 @@ export default function SubmissionsPage() {
 
   return (
     <>
-      <div className="px-6 py-5 border-b border-border bg-background">
-        <h1 className="text-lg font-semibold text-foreground">My Submissions</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Track all your assignment submissions and grades</p>
-      </div>
+      <div className="border-b border-border bg-background px-4 pt-6 sm:px-6"><PageHeader title="My Submissions" description="Track all your assignment submissions and grades" icon={<ClipboardCheck className="h-5 w-5" />} /></div>
 
-      <div className="px-6 py-5 max-w-4xl mx-auto">
+      <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
         {error && (
           <div className="mb-4 flex items-center gap-2 text-sm text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-4 py-2.5">
             <AlertCircle className="h-4 w-4 shrink-0" /> {error}
@@ -78,17 +69,9 @@ export default function SubmissionsPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <div className="space-y-3"><Skeleton className="h-28 rounded-lg" /><Skeleton className="h-28 rounded-lg" /></div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <ClipboardCheck className="mx-auto mb-3 h-10 w-10 opacity-30" />
-            <p className="font-medium">No submissions yet</p>
-            <Link to={ROUTES.STUDENT_COURSES} className="mt-2 text-sm text-primary hover:underline block">
-              Go to My Courses to find assignments
-            </Link>
-          </div>
+          <EmptyState icon={<ClipboardCheck className="h-7 w-7" />} title="No submissions yet" description="Go to My Courses to find assignments" action={<Link to={ROUTES.STUDENT_COURSES} className="text-sm text-primary hover:underline">Go to My Courses</Link>} />
         ) : (
           <div className="space-y-3">
             {filtered.map((s) => {
@@ -97,7 +80,7 @@ export default function SubmissionsPage() {
                 : null
 
               return (
-                <div key={s.id} className="bg-card border border-border rounded-xl p-5">
+                <article key={s.id} className="rounded-lg border border-border bg-card p-5 shadow-card">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link
@@ -112,9 +95,7 @@ export default function SubmissionsPage() {
                         </p>
                       )}
                     </div>
-                    <span className={cn('text-xs px-2.5 py-1 rounded-full font-medium shrink-0', statusStyle(s.status))}>
-                      {s.status}
-                    </span>
+                    <Badge variant={s.status === 'GRADED' ? 'success' : s.status === 'LATE' ? 'warning' : s.status === 'RETURNED' ? 'info' : 'neutral'}>{s.status}</Badge>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 mt-3 text-xs text-muted-foreground">
@@ -151,7 +132,7 @@ export default function SubmissionsPage() {
                       </Link>
                     </div>
                   )}
-                </div>
+                </article>
               )
             })}
           </div>

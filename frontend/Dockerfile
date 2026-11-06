@@ -15,7 +15,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Build args become VITE_ env vars at build time
 ARG VITE_API_URL
-ARG VITE_APP_NAME=LectureCraft
+ARG VITE_APP_NAME=LectureSuite
 ARG VITE_SENTRY_DSN
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_APP_NAME=$VITE_APP_NAME

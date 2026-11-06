@@ -54,7 +54,7 @@ function EditModal({ course, onSave, onCancel, isSaving }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-modal max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold">Edit Course</h2>
           <button type="button" onClick={onCancel} className="rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-muted">
@@ -195,15 +195,15 @@ export default function CourseDetailPage() {
 
       {isLoading ? (
         <div className="space-y-4">
-          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-28 rounded-lg" />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-4">
-              <Skeleton className="h-48 rounded-2xl" />
-              <Skeleton className="h-52 rounded-2xl" />
+              <Skeleton className="h-48 rounded-lg" />
+              <Skeleton className="h-52 rounded-lg" />
             </div>
             <div className="space-y-4">
-              <Skeleton className="h-28 rounded-2xl" />
-              <Skeleton className="h-28 rounded-2xl" />
+              <Skeleton className="h-28 rounded-lg" />
+              <Skeleton className="h-28 rounded-lg" />
             </div>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function CourseDetailPage() {
       ) : (
         <>
           {/* Hero */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-card sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                 <BookOpen className="h-6 w-6 text-primary" />
@@ -246,7 +246,7 @@ export default function CourseDetailPage() {
             {/* Left column */}
             <div className="lg:col-span-2 space-y-5">
               {/* Course info */}
-              <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="rounded-lg border border-border bg-card p-5 shadow-card">
                 <h2 className="text-sm font-semibold">Course Information</h2>
                 <div className="mt-3">
                   <DetailRow icon={Hash}          label="Course Code"   value={course.code} />
@@ -267,7 +267,7 @@ export default function CourseDetailPage() {
               </div>
 
               {/* AI quick actions */}
-              <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="rounded-lg border border-border bg-card p-5 shadow-card">
                 <h2 className="text-sm font-semibold">Generate Content for This Course</h2>
                 <p className="mt-0.5 mb-4 text-xs text-muted-foreground">Open an AI generator for this course</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -284,7 +284,7 @@ export default function CourseDetailPage() {
             {/* Right column */}
             <div className="space-y-5">
               {/* Timestamps */}
-              <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="rounded-lg border border-border bg-card p-5 shadow-card">
                 <h2 className="text-sm font-semibold mb-3">Timeline</h2>
                 <div className="space-y-2.5 text-sm">
                   <div className="flex justify-between">
@@ -299,7 +299,7 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Document count */}
-              <div className="rounded-2xl border border-border bg-card p-5">
+              <div className="rounded-lg border border-border bg-card p-5 shadow-card">
                 <h2 className="text-sm font-semibold mb-3">Documents</h2>
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -318,7 +318,7 @@ export default function CourseDetailPage() {
               </div>
 
               {/* Level badge */}
-              <div className={cn('rounded-2xl border border-border bg-card p-5')}>
+              <div className={cn('rounded-lg border border-border bg-card p-5 shadow-card')}>
                 <h2 className="text-sm font-semibold mb-2">Academic Level</h2>
                 <Badge variant={LEVEL_COLOR[course.level] ?? 'default'} size="lg">{course.level}</Badge>
                 <p className="mt-2 text-xs text-muted-foreground">{LEVEL_LABEL[course.level] ?? course.level}</p>

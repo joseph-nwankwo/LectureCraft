@@ -40,10 +40,8 @@ spec:
             - secretRef:
                 name: lecturecraft-secrets
           env:
-            - name: FRONTEND_URL
-              value: "https://lecturecraft.app"
-            - name: APP_URL
-              value: "https://api.lecturecraft.app"
+            # FRONTEND_URL and APP_URL are now in k8s/configmap.yaml (lecturecraft-config).
+            # Update the ConfigMap values to lecturesuite.app once DNS + TLS are confirmed.
             - name: AWS_REGION
               value: "us-east-1"
             - name: AWS_S3_BUCKET
@@ -52,8 +50,9 @@ spec:
               value: "smtp.sendgrid.net"
             - name: SMTP_PORT
               value: "587"
+            # TODO: update SMTP_FROM domain when confirmed sending domain is verified.
             - name: SMTP_FROM
-              value: "LectureCraft <noreply@lecturecraft.app>"
+              value: "LectureSuite <noreply@lecturecraft.app>"
           resources:
             requests:
               cpu: 250m

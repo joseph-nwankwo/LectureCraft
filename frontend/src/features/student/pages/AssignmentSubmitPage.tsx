@@ -4,6 +4,9 @@ import { Upload, X, FileText, CheckCircle, Loader2, AlertCircle, Clock } from 'l
 import { submissionApi, type Submission } from '@/lib/api/student.api'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Badge } from '@/components/design-system/display/Badge'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 function fmtDate(d: string | null | undefined) {
   if (!d) return null
@@ -11,15 +14,10 @@ function fmtDate(d: string | null | undefined) {
 }
 
 function statusBadge(status: Submission['status']) {
-  const map: Record<Submission['status'], { label: string; cls: string }> = {
-    DRAFT:     { label: 'Draft',     cls: 'bg-muted text-muted-foreground' },
-    SUBMITTED: { label: 'Submitted', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-    LATE:      { label: 'Late',      cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' },
-    GRADED:    { label: 'Graded',    cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-    RETURNED:  { label: 'Returned',  cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+  const map: Record<Submission['status'], 'neutral' | 'info' | 'warning' | 'success'> = {
+    DRAFT: 'neutral', SUBMITTED: 'info', LATE: 'warning', GRADED: 'success', RETURNED: 'info',
   }
-  const { label, cls } = map[status]
-  return <span className={cn('text-xs px-2.5 py-1 rounded-full font-medium', cls)}>{label}</span>
+  return <Badge variant={map[status]}>{status}</Badge>
 }
 
 export default function AssignmentSubmitPage() {
@@ -77,9 +75,7 @@ export default function AssignmentSubmitPage() {
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
+    <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6 sm:py-8"><Skeleton className="h-10 w-64 rounded-lg" /><Skeleton className="h-48 rounded-lg" /><Skeleton className="h-64 rounded-lg" /></div>
   )
 
   if (!sub && error) return (
@@ -91,25 +87,17 @@ export default function AssignmentSubmitPage() {
   )
 
   return (
-    <div className="px-6 py-6 max-w-3xl mx-auto">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
       {/* Header */}
       <button onClick={() => navigate(ROUTES.STUDENT_COURSES)} className="text-xs text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1">
         ← Back to courses
       </button>
 
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">{assessment?.title ?? 'Assignment'}</h1>
-          {assessment?.course && (
-            <p className="text-sm text-muted-foreground mt-0.5">{assessment.course.code} · {assessment.course.title}</p>
-          )}
-        </div>
-        {sub && statusBadge(sub.status)}
-      </div>
+      <PageHeader title={assessment?.title ?? 'Assignment'} description={assessment?.course ? `${assessment.course.code} · ${assessment.course.title}` : undefined} icon={<FileText className="h-5 w-5" />} actions={sub ? statusBadge(sub.status) : undefined} className="mb-6" />
 
       {/* Assignment info */}
-      <div className="bg-card border border-border rounded-xl p-5 mb-5">
-        <div className="grid sm:grid-cols-2 gap-3 text-sm mb-3">
+      <section className="mb-5 rounded-lg border border-border bg-card p-5 shadow-card" aria-labelledby="assignment-info-heading">
+        <h2 id="assignment-info-heading" className="sr-only">Assignment information</h2><div className="grid gap-3 text-sm sm:grid-cols-2 mb-3">
           <div>
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total Marks</span>
             <p className="font-semibold text-foreground">{assessment?.totalMarks ?? '—'}</p>
@@ -131,11 +119,11 @@ export default function AssignmentSubmitPage() {
             <p className="text-sm text-foreground whitespace-pre-wrap">{assessment.instructions}</p>
           </div>
         )}
-      </div>
+      </section>
 
       {/* Graded feedback */}
       {(sub?.status === 'GRADED' || sub?.status === 'RETURNED') && (
-        <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-xl p-5 mb-5">
+        <div className="mb-5 rounded-lg border border-success/30 bg-success-muted p-5" role="status">
           <p className="font-semibold text-green-800 dark:text-green-300 mb-1">
             {sub.status === 'GRADED' ? `Grade: ${sub.grade} / ${assessment?.totalMarks}` : 'Returned for revision'}
           </p>
@@ -145,8 +133,8 @@ export default function AssignmentSubmitPage() {
       )}
 
       {/* Submission area */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <p className="text-sm font-semibold text-foreground mb-3">Your Submission</p>
+      <section className="rounded-lg border border-border bg-card p-5 shadow-card" aria-labelledby="submission-heading">
+        <h2 id="submission-heading" className="mb-3 text-sm font-semibold text-foreground">Your Submission</h2>
 
         {/* Existing file */}
         {sub?.fileUrl && !file && (
@@ -229,7 +217,7 @@ export default function AssignmentSubmitPage() {
             </button>
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

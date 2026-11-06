@@ -57,7 +57,7 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function SignUpPage() {
-  useEffect(() => { document.title = 'Register Your Institution — LectureCraft' }, [])
+    useEffect(() => { document.title = 'Register Your Institution — LectureSuite' }, [])
 
   const { login }     = useAuth()
   const navigate      = useNavigate()
@@ -132,7 +132,7 @@ export default function SignUpPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
               <Lightbulb className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-base font-bold">LectureCraft</span>
+            <span className="text-base font-bold">LectureSuite</span>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight">Register your institution</h1>
           <p className="mt-1 text-sm text-muted-foreground">Set up your team's AI-powered academic workspace</p>

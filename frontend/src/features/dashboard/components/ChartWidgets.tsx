@@ -10,8 +10,9 @@ import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 const IS_DARK = () => document.documentElement.classList.contains('dark')
 const GRID_STROKE  = () => IS_DARK() ? 'oklch(0.3 0 0)' : 'oklch(0.92 0 0)'
 const MUTED_TEXT   = () => IS_DARK() ? 'oklch(0.65 0 0)' : 'oklch(0.55 0 0)'
-const PRIMARY = 'oklch(0.55 0.22 250)'
-const CHART_COLORS = ['oklch(0.55 0.22 250)', 'oklch(0.60 0.18 160)', 'oklch(0.70 0.18 55)', 'oklch(0.60 0.18 25)', 'oklch(0.60 0.20 300)']
+const PRIMARY = 'var(--chart-1)'
+const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)']
+const CHART_SKELETON_HEIGHTS = [58, 78, 46, 88, 64, 72, 52]
 
 // ── Shared tooltip style ──────────────────────────────────────────────────────
 const tooltipStyle: React.CSSProperties = {
@@ -36,7 +37,7 @@ interface ChartCardProps {
 
 export function ChartCard({ title, subtitle, loading, className, children, action, height = 220 }: ChartCardProps) {
   return (
-    <div className={cn('rounded-xl border bg-card shadow-card p-5 space-y-4', className)}>
+    <div className={cn('rounded-lg border bg-card p-5 shadow-card space-y-4', className)}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>
@@ -46,8 +47,8 @@ export function ChartCard({ title, subtitle, loading, className, children, actio
       </div>
       {loading ? (
         <div style={{ height }} className="flex items-end gap-2">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="flex-1" style={{ height: `${40 + Math.random() * 60}%` }}>
+          {CHART_SKELETON_HEIGHTS.map((height, i) => (
+            <div key={i} className="flex-1" style={{ height: `${height}%` }}>
               <Skeleton className="w-full h-full rounded" />
             </div>
           ))}
@@ -183,7 +184,7 @@ export function StorageWidget({ used, total, segments, loading }: {
   const pct = Math.round((used / total) * 100)
 
   return (
-    <div className="rounded-xl border bg-card shadow-card p-5 space-y-4">
+    <div className="rounded-lg border bg-card p-5 shadow-card space-y-4">
       <div>
         <h3 className="text-sm font-semibold text-foreground">Storage Usage</h3>
         <p className="text-xs text-muted-foreground mt-0.5">{used.toFixed(1)} GB of {total} GB used</p>
@@ -230,7 +231,7 @@ export function ProductivityWidget({ score, trend, loading }: {
   const strokeDash = (score / 100) * CIRCUMFERENCE
 
   return (
-    <div className="rounded-xl border bg-card shadow-card p-5 space-y-3">
+    <div className="rounded-lg border bg-card p-5 shadow-card space-y-3">
       <div>
         <h3 className="text-sm font-semibold text-foreground">Productivity Score</h3>
         <p className="text-xs text-muted-foreground mt-0.5">Based on activity this week</p>

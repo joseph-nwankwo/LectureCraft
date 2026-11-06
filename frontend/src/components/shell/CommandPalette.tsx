@@ -59,7 +59,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search pages, actions, documents…" />
+      <CommandInput placeholder="Search pages, actions, documents…" className="h-12 border-b border-border px-4 text-sm" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         {groups.map((group, i) => (
@@ -69,8 +69,8 @@ export function CommandPalette() {
               {commands.filter((c) => c.group === group).map((cmd) => {
                 const Icon = cmd.icon
                 return (
-                  <CommandItem key={cmd.id} value={cmd.label} onSelect={cmd.action} className="gap-2">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  <CommandItem key={cmd.id} value={cmd.label} onSelect={cmd.action} className="min-h-10 gap-3 rounded-md px-3">
+                    <Icon className="h-4 w-4 text-primary" aria-hidden />
                     <span className="flex-1">{cmd.label}</span>
                     {cmd.shortcut && (
                       <kbd className="pointer-events-none text-[10px] text-muted-foreground font-mono">{cmd.shortcut}</kbd>

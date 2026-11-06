@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
+import { TableProperties } from 'lucide-react'
 import { Button } from '@/components/design-system/buttons/Button'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
 import type { InstitutionType } from '@/features/settings/pages/InstitutionSettingsPage'
 import {
   type GradeBand,
@@ -389,19 +391,22 @@ export default function MarkSheetPage() {
   // CSS class helpers (small scope, not worth Tailwind for print-critical form)
   const fi   = 'border border-input rounded-lg px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring w-full'
   const fl   = 'text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1 block'
-  const card = 'bg-card border border-border rounded-xl p-4 mb-4'
+  const card = 'bg-card border border-border rounded-lg p-4 mb-4 shadow-card'
 
   return (
     <>
       <style>{MS_STYLES}</style>
 
       {/* ── Page header ───────────────────────────────────────────── */}
-      <div className="ms-no-print px-6 py-5 border-b border-border bg-background">
-        <h1 className="text-lg font-semibold text-foreground">Mark Sheet Generator</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Generate an official A4 course marks sheet — print or save as PDF</p>
+      <div className="ms-no-print border-b border-border bg-card px-4 py-5 sm:px-6">
+        <PageHeader
+          title="Mark Sheet Generator"
+          description="Generate an official A4 course marks sheet — print or save as PDF"
+          icon={<TableProperties className="h-5 w-5" />}
+        />
       </div>
 
-      <div className="ms-no-print overflow-y-auto flex-1 px-6 py-5 max-w-4xl">
+      <div className="ms-no-print flex-1 max-w-4xl overflow-y-auto px-4 py-5 sm:px-6">
 
         {/* Course info */}
         <div className={card}>
@@ -612,7 +617,7 @@ export default function MarkSheetPage() {
         )}
 
         <div className="flex gap-3 pb-8">
-          <Button variant="primary" className="bg-[#0B1E3D] hover:bg-[#0B1E3D]/90 border-[#0B1E3D]" onClick={generate}>
+          <Button variant="primary" className="bg-primary hover:bg-primary/90 border-primary" onClick={generate}>
             Generate Mark Sheet
           </Button>
           {result && (

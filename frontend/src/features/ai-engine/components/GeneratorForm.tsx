@@ -45,7 +45,7 @@ export const COMMON_DEFAULTS: CommonFormState = {
 
 // ── Select components ─────────────────────────────────────────────────────────
 
-const inputBase = 'w-full rounded-lg border border-[#E2DDD6] bg-white px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-[#C9A227] focus:ring-2 focus:ring-[#C9A227]/20 disabled:opacity-60 transition-colors'
+const inputBase = 'w-full rounded-lg border border-border bg-input px-3 text-sm text-foreground placeholder:text-text-placeholder focus:outline-none focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:opacity-60 transition-colors'
 const sel = `${inputBase} h-9`
 
 export function LabeledSelect({ label, value, onChange, children, disabled }: {

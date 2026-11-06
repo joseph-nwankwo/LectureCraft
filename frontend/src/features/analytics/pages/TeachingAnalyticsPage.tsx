@@ -4,6 +4,9 @@ import { format, subDays } from 'date-fns'
 import { FileText, Bot, Zap, CheckCircle2 } from 'lucide-react'
 import { analyticsApi } from '../../../lib/api/analytics.api'
 import { StatCard, AreaChart, BarChart, PieChart, DateRangePicker, PALETTE } from '../components/Charts'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
+import { Badge } from '@/components/design-system/display/Badge'
 
 export function TeachingAnalyticsPage() {
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -34,19 +37,13 @@ export function TeachingAnalyticsPage() {
   const isLoading = docLoading || aiLoading || appLoading
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Teaching Analytics</h1>
-          <p className="text-sm text-muted-foreground">Productivity, document activity, and AI usage</p>
-        </div>
-        <DateRangePicker from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }} />
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Teaching Analytics" description="Productivity, document activity, and AI usage" icon={<FileText className="h-5 w-5" />} actions={<DateRangePicker from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t) }} />} className="mb-8" />
 
       {isLoading && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-muted rounded-xl animate-pulse" />)}
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
           </div>
         </div>
       )}
@@ -63,22 +60,22 @@ export function TeachingAnalyticsPage() {
 
           {/* Time series */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">Document Creation</h3>
               <AreaChart data={docStats.timeSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="Documents" color={PALETTE[0]} />
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">AI Generations</h3>
               <AreaChart data={aiStats.timeSeries as unknown as Record<string, unknown>[]} dataKey="value" xKey="date" label="Tokens" color={PALETTE[1]} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">Documents by Type</h3>
               <PieChart data={docStats.byType.map((d) => ({ name: d.type, count: d.count }))} donut />
             </div>
-            <div className="bg-card border border-border rounded-xl p-4">
+            <div className="bg-card border border-border rounded-lg p-4 shadow-card">
               <h3 className="text-sm font-semibold mb-3 text-foreground">Approval Status</h3>
               <PieChart data={approvals.byStatus.map((a) => ({ name: a.status, count: a.count }))} />
             </div>
@@ -91,12 +88,12 @@ export function TeachingAnalyticsPage() {
           {/* AI by provider */}
           {aiStats.byProvider.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-              <div className="bg-card border border-border rounded-xl p-4">
+              <div className="bg-card border border-border rounded-lg p-4 shadow-card">
                 <h3 className="text-sm font-semibold mb-3 text-foreground">AI Usage by Provider</h3>
                 <BarChart data={aiStats.byProvider.map((p) => ({ name: p.provider, generations: p.generations }))}
                   dataKey="generations" xKey="name" color={PALETTE[4]} />
               </div>
-              <div className="bg-card border border-border rounded-xl p-4">
+              <div className="bg-card border border-border rounded-lg p-4 shadow-card">
                 <h3 className="text-sm font-semibold mb-3 text-foreground">AI Usage by Module</h3>
                 <BarChart data={aiStats.byModule.map((m) => ({ name: m.moduleType, generations: m.generations }))}
                   dataKey="generations" xKey="name" color={PALETTE[5]} horizontal />
@@ -106,7 +103,7 @@ export function TeachingAnalyticsPage() {
 
           {/* Productivity leaderboard */}
           {!prodLoading && productivity && productivity.length > 0 && (
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="bg-card border border-border rounded-lg overflow-hidden shadow-card">
               <div className="px-4 py-3 border-b border-border">
                 <h3 className="font-semibold text-sm text-foreground">Productivity Leaderboard</h3>
               </div>
@@ -127,7 +124,7 @@ export function TeachingAnalyticsPage() {
                       <tr key={p.userId} className="border-t border-border">
                         <td className="px-4 py-2 text-muted-foreground">{i + 1}</td>
                         <td className="px-4 py-2 font-medium text-foreground">{p.name}</td>
-                        <td className="px-4 py-2 text-muted-foreground text-xs">{p.department ?? '—'}</td>
+                        <td className="px-4 py-2 text-muted-foreground text-xs"><Badge variant="neutral">{p.department ?? '—'}</Badge></td>
                         <td className="px-4 py-2 text-right">{p.documents}</td>
                         <td className="px-4 py-2 text-right">{p.questions}</td>
                         <td className="px-4 py-2 text-right">{p.aiGenerations}</td>

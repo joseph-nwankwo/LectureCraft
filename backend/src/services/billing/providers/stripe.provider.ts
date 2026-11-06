@@ -20,7 +20,7 @@ export class StripeProvider implements IPaymentProvider {
         price_data: {
           currency: opts.currency.toLowerCase(),
           unit_amount: Math.round(opts.amount * 100),
-          product_data: { name: 'LectureCraft Subscription', description: `Invoice ${opts.invoiceId}` },
+          product_data: { name: 'LectureSuite Subscription', description: `Invoice ${opts.invoiceId}` },
         },
         quantity: 1,
       }],

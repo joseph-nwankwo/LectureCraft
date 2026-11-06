@@ -363,13 +363,13 @@ export default function TeachingAssistantPage() {
     : `${materials.length} material${materials.length > 1 ? 's' : ''} loaded`
 
   return (
-    <div className="flex h-[calc(100vh-56px)] flex-col">
+    <div className="flex h-[calc(100vh-56px)] min-w-0 flex-col bg-surface-1">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3 gap-3 flex-wrap">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 flex-wrap sm:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800">
-            <GraduationCap className="h-4 w-4 text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <GraduationCap className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
             <p className="text-sm font-semibold">Teaching Assistant</p>
@@ -379,19 +379,15 @@ export default function TeachingAssistantPage() {
 
         <div className="flex items-center gap-2">
           {/* Upload materials button */}
-          <button
+          <Button
             type="button"
+            variant={materials.length > 0 ? 'outline' : 'secondary'}
+            size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading || materials.length >= MAX_MATERIALS}
-            className={cn(
-              'flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
-              materials.length > 0
-                ? 'border-primary/30 bg-primary/5 text-primary hover:bg-primary/10'
-                : 'border-border bg-card text-foreground hover:bg-muted',
-            )}>
-            <Upload className="h-3.5 w-3.5" />
+            leftIcon={<Upload className="h-3.5 w-3.5" />}>
             {uploading ? 'Uploading…' : materialsLabel}
-          </button>
+          </Button>
 
           {messages.length > 0 && (
             <Button variant="ghost" size="sm" leftIcon={<RotateCcw className="h-4 w-4" />} onClick={clearAll}>New chat</Button>
@@ -405,7 +401,7 @@ export default function TeachingAssistantPage() {
 
       {/* ── Upload error ───────────────────────────────────────────────── */}
       {uploadError && (
-        <div className="shrink-0 flex items-center gap-2 border-b border-border bg-error/5 px-6 py-2 text-xs text-error">
+        <div className="flex shrink-0 items-center gap-2 border-b border-error/20 bg-error/5 px-4 py-2 text-xs text-error sm:px-6">
           {uploadError}
           <button type="button" onClick={() => setUploadError('')} className="ml-auto"><X className="h-3.5 w-3.5" /></button>
         </div>
@@ -413,7 +409,7 @@ export default function TeachingAssistantPage() {
 
       {/* ── Material chips ─────────────────────────────────────────────── */}
       {(materials.length > 0 || pendingUpload) && (
-        <div className="shrink-0 flex items-center gap-2 border-b border-border bg-primary/5 px-6 py-2 flex-wrap">
+        <div className="flex shrink-0 items-center gap-2 border-b border-primary/20 bg-primary/5 px-4 py-2 flex-wrap sm:px-6">
           <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">Course materials:</span>
           {materials.map((m) => (
             <div key={m.id} className="flex items-center gap-1 rounded-full border border-primary/20 bg-card px-2 py-0.5">
@@ -455,12 +451,12 @@ export default function TeachingAssistantPage() {
       )}
 
       {/* ── Messages ───────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-8">
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800">
-                <GraduationCap className="h-7 w-7 text-white" />
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
+                <GraduationCap className="h-7 w-7 text-primary-foreground" />
               </div>
               <h2 className="text-lg font-semibold">Teaching Assistant</h2>
               <p className="mt-1 text-sm text-muted-foreground max-w-sm">
@@ -470,7 +466,7 @@ export default function TeachingAssistantPage() {
               {materials.length === 0 && (
                 <button type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-4 flex items-center gap-2 rounded-xl border-2 border-dashed border-border px-5 py-3 text-sm text-muted-foreground mx-auto hover:border-primary/40 hover:text-foreground transition-colors">
+                  className="mx-auto mt-4 flex items-center gap-2 rounded-lg border-2 border-dashed border-border px-5 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
                   <Upload className="h-4 w-4" />
                   Upload course materials (optional)
                 </button>
@@ -479,7 +475,7 @@ export default function TeachingAssistantPage() {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 max-w-lg w-full">
               {SUGGESTIONS.map((s) => (
                 <button key={s.label} type="button" onClick={() => void sendMessage(s.prompt)}
-                  className="flex items-start gap-3 rounded-xl border border-border bg-card p-3 text-left text-sm hover:bg-muted/60 transition-colors">
+                  className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left text-sm shadow-card transition-colors hover:bg-muted/60">
                   <s.icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                   <div>
                     <p className="font-medium">{s.label}</p>
@@ -512,9 +508,9 @@ export default function TeachingAssistantPage() {
       )}
 
       {/* ── Input ──────────────────────────────────────────────────────── */}
-      <div className="shrink-0 border-t border-border bg-card px-6 py-4">
+      <div className="shrink-0 border-t border-border bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-end gap-2 rounded-xl border border-input bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
+          <div className="flex items-end gap-2 rounded-lg border border-input bg-background px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
             {/* Voice input button */}
             <button
               type="button"

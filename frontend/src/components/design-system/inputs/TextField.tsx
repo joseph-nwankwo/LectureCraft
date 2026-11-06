@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import { FormField, type FormFieldProps, type FieldStatus } from './FormField'
 
 const statusBorder: Record<FieldStatus, string> = {
-  default: 'border-[#E2DDD6] focus:border-[#C9A227]',
+  default: 'border-border focus:border-primary',
   success: 'border-success focus:border-success',
   warning: 'border-warning focus:border-warning',
   error:   'border-error   focus:border-error',
@@ -85,10 +85,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
               aria-invalid={effectiveStatus === 'error'}
               aria-describedby={hint || error ? `${fieldId}-hint` : undefined}
               className={cn(
-                'flex w-full rounded-md border bg-white text-foreground',
-                'placeholder:text-muted-foreground/50',
+                'flex w-full rounded-md border bg-input text-foreground',
+                'placeholder:text-text-placeholder',
                 'transition-colors duration-150',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]/20 focus-visible:ring-offset-0',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:ring-offset-0',
                 'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted',
                 'read-only:bg-muted',
                 heightCls,

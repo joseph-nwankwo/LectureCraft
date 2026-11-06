@@ -21,13 +21,22 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   tls:
+    # Legacy domain — keep active during migration
     - hosts:
         - lecturecraft.app
         - www.lecturecraft.app
         - api.lecturecraft.app
       secretName: lecturecraft-tls
+    # New domain — uncomment once DNS points to this cluster.
+    # cert-manager will automatically provision lecturesuite-tls via letsencrypt-prod.
+    # PENDING: DNS A records for lecturesuite.app, www.lecturesuite.app, api.lecturesuite.app
+    # - hosts:
+    #     - lecturesuite.app
+    #     - www.lecturesuite.app
+    #     - api.lecturesuite.app
+    #   secretName: lecturesuite-tls
   rules:
-    # API traffic
+    # Legacy API traffic
     - host: api.lecturecraft.app
       http:
         paths:
@@ -38,7 +47,18 @@ spec:
                 name: backend-service
                 port:
                   number: 4000
-    # Frontend + API on same domain (for single-domain deployments)
+    # New API domain — uncomment after DNS and TLS are confirmed
+    # - host: api.lecturesuite.app
+    #   http:
+    #     paths:
+    #       - path: /
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: backend-service
+    #             port:
+    #               number: 4000
+    # Legacy frontend + API on same domain
     - host: lecturecraft.app
       http:
         paths:
@@ -70,3 +90,35 @@ spec:
                 name: frontend-service
                 port:
                   number: 80
+    # New frontend domain — uncomment after DNS and TLS are confirmed
+    # - host: lecturesuite.app
+    #   http:
+    #     paths:
+    #       - path: /api
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: backend-service
+    #             port:
+    #               number: 4000
+    #       - path: /socket.io
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: backend-service
+    #             port:
+    #               number: 4000
+    #       - path: /health
+    #         pathType: Exact
+    #         backend:
+    #           service:
+    #             name: backend-service
+    #             port:
+    #               number: 4000
+    #       - path: /
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: frontend-service
+    #             port:
+    #               number: 80

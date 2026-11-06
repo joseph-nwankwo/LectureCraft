@@ -29,7 +29,7 @@ export default function NotificationsPage() {
           {unreadCount > 0 && <p className="text-sm text-gray-500 mt-1">{unreadCount} unread</p>}
         </div>
         {unreadCount > 0 && (
-          <button onClick={markAllRead} className="text-sm text-indigo-600 font-medium hover:underline">
+          <button onClick={markAllRead} className="text-sm text-primary font-medium hover:underline">
             Mark all read
           </button>
         )}
@@ -40,7 +40,7 @@ export default function NotificationsPage() {
           <button
             key={c}
             onClick={() => setCategory(c)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${category === c ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${category === c ? 'bg-primary text-primary-foreground' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
             {c}
           </button>
@@ -54,9 +54,9 @@ export default function NotificationsPage() {
         {filtered.map((notif) => (
           <div
             key={notif.id}
-            className={`bg-white border rounded-xl p-4 flex items-start gap-4 ${!notif.isRead ? 'border-indigo-200 bg-indigo-50/30' : ''}`}
+            className={`bg-white border rounded-xl p-4 flex items-start gap-4 ${!notif.isRead ? 'border-primary/20 bg-primary/5' : ''}`}
           >
-            <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notif.isRead ? 'bg-gray-200' : 'bg-indigo-500'}`} />
+            <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${notif.isRead ? 'bg-gray-200' : 'bg-accent0'}`} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-sm text-gray-900">{notif.title}</span>
@@ -67,13 +67,13 @@ export default function NotificationsPage() {
               <div className="flex items-center gap-4 mt-2">
                 <span className="text-xs text-gray-400">{formatDate(notif.createdAt)}</span>
                 {notif.actionUrl && (
-                  <a href={notif.actionUrl} className="text-xs text-indigo-600 hover:underline">View</a>
+                  <a href={notif.actionUrl} className="text-xs text-primary hover:underline">View</a>
                 )}
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
               {!notif.isRead && (
-                <button onClick={() => markRead(notif.id)} className="text-xs text-indigo-600 hover:underline">Read</button>
+                <button onClick={() => markRead(notif.id)} className="text-xs text-primary hover:underline">Read</button>
               )}
               <button
                 onClick={() => handleArchive(notif.id)}

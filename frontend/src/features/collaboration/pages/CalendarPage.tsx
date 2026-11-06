@@ -21,7 +21,7 @@ const EVENT_TYPES = ['MEETING', 'LECTURE', 'DEADLINE', 'APPROVAL', 'ASSIGNMENT',
 
 const typeColor = (t: string) => ({
   MEETING: 'bg-blue-100 text-blue-700',
-  LECTURE: 'bg-indigo-100 text-indigo-700',
+  LECTURE: 'bg-primary/10 text-primary',
   DEADLINE: 'bg-red-100 text-red-700',
   APPROVAL: 'bg-amber-100 text-amber-700',
   ASSIGNMENT: 'bg-green-100 text-green-700',
@@ -79,7 +79,7 @@ export default function CalendarPage() {
         <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700"
+          className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90"
         >
           + New Event
         </button>
@@ -131,7 +131,7 @@ export default function CalendarPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowCreate(false)} className="flex-1 border rounded-lg px-4 py-2 text-sm">Cancel</button>
-                <button type="submit" disabled={creating} className="flex-1 bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                <button type="submit" disabled={creating} className="flex-1 bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
                   {creating ? 'Creating...' : 'Create'}
                 </button>
               </div>
@@ -154,7 +154,7 @@ export default function CalendarPage() {
               <div className="space-y-2">
                 {dayEvents.map((ev) => (
                   <div key={ev.id} className="bg-white border rounded-xl p-4 flex items-start gap-4">
-                    <div className={`w-2 h-full min-h-[2rem] rounded-full flex-shrink-0 ${ev.color ?? 'bg-indigo-400'}`} />
+                    <div className={`w-2 h-full min-h-[2rem] rounded-full flex-shrink-0 ${ev.color ?? 'bg-primary/60'}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm text-gray-900">{ev.title}</span>
@@ -165,7 +165,7 @@ export default function CalendarPage() {
                       </div>
                       {ev.location && <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5"><MapPin className="h-3 w-3 shrink-0" />{ev.location}</div>}
                       {ev.meetingUrl && (
-                        <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline mt-0.5 block">Join meeting</a>
+                        <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline mt-0.5 block">Join meeting</a>
                       )}
                       {ev.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ev.description}</p>}
                     </div>

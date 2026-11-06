@@ -83,7 +83,7 @@ export default function LectureNotesGeneratorPage() {
       <FormSection label="Academic settings" />
       <AcademicLevelField {...cfp} />
       <BloomField {...cfp} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <TextField label="Duration (min)" type="number" value={form.duration}
           onChange={(e) => setForm((p) => ({ ...p, duration: e.target.value }))} disabled={isGenerating} />
         <TextField label="Target word count" type="number" value={form.wordCount}

@@ -1,8 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ReactNode } from 'react'
-import { FileText, FileEdit, Globe, Hash, Package, Upload } from 'lucide-react'
+import { FileText, FileEdit, Globe, Hash, Package, Upload, Download, Plus, X } from 'lucide-react'
 import { libraryApi, type ExportRecord, type ExportTemplate, type LibraryDocument } from '../../../lib/api/library.api'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Button } from '@/components/design-system/buttons/Button'
+import { Badge } from '@/components/design-system/display/Badge'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api') as string
 
@@ -27,34 +32,34 @@ const FORMAT_LABELS: Record<string, { label: string; icon: ReactNode }> = {
   txt:      { label: 'Plain Text',    icon: <FileText className="h-4 w-4" /> },
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  PROCESSING: 'bg-blue-100 text-blue-800',
-  COMPLETED: 'bg-green-100 text-green-800',
-  FAILED: 'bg-red-100 text-red-800',
+const STATUS_VARIANTS: Record<string, 'warning' | 'info' | 'success' | 'error'> = {
+  PENDING: 'warning',
+  PROCESSING: 'info',
+  COMPLETED: 'success',
+  FAILED: 'error',
 }
 
 function ExportRow({ record }: { record: ExportRecord }) {
   return (
-    <div className="flex items-center gap-3 p-4 border border-border rounded-lg bg-card">
-      <span className="flex h-8 w-8 items-center justify-center text-muted-foreground">{FORMAT_LABELS[record.format]?.icon ?? <Package className="h-4 w-4" />}</span>
+    <article className="flex items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-card">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">{FORMAT_LABELS[record.format]?.icon ?? <Package className="h-4 w-4" />}</span>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm text-foreground truncate">{record.document.title}</p>
         <p className="text-xs text-muted-foreground mt-0.5">
           {FORMAT_LABELS[record.format]?.label ?? record.format} · {new Date(record.createdAt).toLocaleString()}
         </p>
       </div>
-      <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${STATUS_COLORS[record.status] ?? 'bg-muted'}`}>
-        {record.status}
-      </span>
+      <Badge variant={STATUS_VARIANTS[record.status] ?? 'neutral'}>{record.status}</Badge>
       {record.status === 'COMPLETED' && record.fileUrl && (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => void authenticatedDownload(record.fileUrl!, `export.${record.format}`)}
-          className="text-xs text-primary border border-primary/30 px-3 py-1 rounded hover:bg-primary/5 shrink-0">
-          Download
-        </button>
+          aria-label={`Download ${record.document.title}`}
+          title="Download export"
+        ><Download className="h-4 w-4" /><span className="hidden sm:inline">Download</span></Button>
       )}
-    </div>
+    </article>
   )
 }
 
@@ -83,13 +88,14 @@ function QuickExportPanel() {
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-5 mb-6">
-      <h2 className="font-semibold text-foreground mb-4">Quick Export</h2>
+    <section className="mb-8 rounded-lg border border-border bg-card p-5 shadow-card" aria-labelledby="quick-export-heading">
+      <h2 id="quick-export-heading" className="mb-4 font-semibold text-foreground">Quick Export</h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Document</label>
           <select value={docId} onChange={(e) => setDocId(e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none">
+            aria-label="Document to export"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
             <option value="">— Select document —</option>
             {docs.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
           </select>
@@ -97,7 +103,8 @@ function QuickExportPanel() {
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Format</label>
           <select value={format} onChange={(e) => setFormat(e.target.value)}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none">
+            aria-label="Export format"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
             {Object.entries(FORMAT_LABELS).map(([v, { label }]) => (
               <option key={v} value={v}>{label}</option>
             ))}
@@ -106,20 +113,22 @@ function QuickExportPanel() {
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Mode</label>
           <select value={mode} onChange={(e) => setMode(e.target.value as 'instant' | 'queue')}
-            className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none">
+            aria-label="Export mode"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
             <option value="instant">Instant Download</option>
             <option value="queue">Queue (async)</option>
           </select>
         </div>
       </div>
-      <button
+      <Button
+        variant="primary"
+        size="lg"
         disabled={!docId || queueMutation.isPending}
         onClick={mode === 'instant' ? handleInstantDownload : () => queueMutation.mutate()}
-        className="mt-4 bg-primary text-primary-foreground px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
       >
-        {queueMutation.isPending ? 'Queuing…' : mode === 'instant' ? 'Download Now' : 'Queue Export'}
-      </button>
-    </div>
+        {queueMutation.isPending ? 'Queuing…' : mode === 'instant' ? <><Download className="h-4 w-4" />Download Now</> : <><Upload className="h-4 w-4" />Queue Export</>}
+      </Button>
+    </section>
   )
 }
 
@@ -150,8 +159,7 @@ function TemplatesSection() {
     <div className="mt-8">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-foreground">Export Templates</h2>
-        <button onClick={() => setCreating(true)}
-          className="text-sm text-primary hover:underline">+ New template</button>
+        <Button variant="outline" size="sm" onClick={() => setCreating(true)}><Plus className="h-4 w-4" />New template</Button>
       </div>
 
       {creating && (
@@ -159,10 +167,8 @@ function TemplatesSection() {
           <input value={newName} onChange={(e) => setNewName(e.target.value)}
             placeholder="Template name…"
             className="flex-1 border border-border rounded px-3 py-1.5 text-sm bg-background focus:outline-none" />
-          <button onClick={() => createMutation.mutate()} disabled={!newName.trim() || createMutation.isPending}
-            className="bg-primary text-primary-foreground px-3 py-1.5 rounded text-sm disabled:opacity-50">Save</button>
-          <button onClick={() => { setCreating(false); setNewName('') }}
-            className="border border-border px-3 py-1.5 rounded text-sm hover:bg-muted">Cancel</button>
+          <Button size="sm" onClick={() => createMutation.mutate()} disabled={!newName.trim() || createMutation.isPending}>Save</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setCreating(false); setNewName('') }}><X className="h-4 w-4" />Cancel</Button>
         </div>
       )}
 
@@ -172,13 +178,12 @@ function TemplatesSection() {
 
       <div className="space-y-2">
         {templates.map((t) => (
-          <div key={t.id} className="flex items-center gap-3 p-3 border border-border rounded-lg bg-card">
+          <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 shadow-card">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">{t.name}</p>
               <p className="text-xs text-muted-foreground">{t.category} {t.isDefault && '· Default'}</p>
             </div>
-            <button onClick={() => { if (confirm('Delete this template?')) deleteMutation.mutate(t.id) }}
-              className="text-xs text-red-600 hover:underline">Remove</button>
+            <Button variant="ghost" size="sm" onClick={() => { if (confirm('Delete this template?')) deleteMutation.mutate(t.id) }} className="text-destructive hover:text-destructive">Remove</Button>
           </div>
         ))}
       </div>
@@ -198,26 +203,28 @@ export function ExportCenterPage() {
   const totalPages: number = (data as { totalPages?: number } | undefined)?.totalPages ?? 1
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Export Center</h1>
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader
+        title="Export Center"
+        description="Download documents in the formats your workflow needs."
+        icon={<Upload className="h-5 w-5" />}
+        className="mb-8"
+      />
 
       <QuickExportPanel />
 
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h2 className="font-semibold text-foreground">Export History</h2>
       </div>
 
       {isLoading && (
         <div className="space-y-2">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />)}
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
         </div>
       )}
 
       {!isLoading && records.length === 0 && (
-        <div className="text-center py-10 text-muted-foreground">
-          <Upload className="h-8 w-8 text-muted-foreground/40 mb-2" />
-          <p>No exports yet</p>
-        </div>
+        <EmptyState icon={<Upload className="h-7 w-7" />} title="No exports yet" description="Your generated export history will appear here." size="sm" />
       )}
 
       <div className="space-y-2">

@@ -1,8 +1,8 @@
-# LectureCraft — Handover Document
+# LectureSuite — Handover Document
 
 ## Project Overview
 
-LectureCraft is an AI-powered academic content platform for university/polytechnic/college educators. Part of the UAMSATech Craft Suite ecosystem. Built from scratch as a full SaaS product across 11 phases.
+LectureSuite is an AI-powered academic content platform for university/polytechnic/college educators. Part of the UAMSATech Craft Suite ecosystem. Built from scratch as a full SaaS product across 11 phases.
 
 **Owner:** Prevail Nwankwo (josephnwankwo56@gmail.com)
 
@@ -78,7 +78,7 @@ BILLING_DEFAULT_PROVIDER=stripe
 TRIAL_DAYS=14
 ```
 
-**Important:** `DATABASE_URL` now points to the shared `craftsuite` database (previously `lecturercraft`). Both LectureCraft and ScholarCraft share this database. `JWT_ACCESS_SECRET` is the Craft Suite shared secret — the same value is set in uamsatech.com as `AUTH_JWT_SECRET` and `CRAFT_LAUNCH_SECRET`, enabling cross-product token verification.
+**Important:** `DATABASE_URL` now points to the shared `craftsuite` database (previously `lecturercraft`). Both LectureSuite and ScholarCraft share this database. `JWT_ACCESS_SECRET` is the Craft Suite shared secret — the same value is set in uamsatech.com as `AUTH_JWT_SECRET` and `CRAFT_LAUNCH_SECRET`, enabling cross-product token verification.
 
 **Redis is optional.** BullMQ workers run a TCP pre-flight (`checkRedis()`) and disable themselves gracefully if Redis isn't running. All other features work without Redis.
 
@@ -107,7 +107,7 @@ TRIAL_DAYS=14
 - Tokens stored in `localStorage` under keys `accessToken` and `refreshToken`
 - Auth middleware augments `express.Request` directly via module augmentation — there is no exported `AuthRequest` type; controllers use `import type { Request } from 'express'`
 - Controllers access `req.user!.userId` and `req.user!.institutionId!`
-- LectureCraft's `User.password` field is named `password` (not `passwordHash`) — important for SSO auto-provisioning (set to `''`)
+- LectureSuite's `User.password` field is named `password` (not `passwordHash`) — important for SSO auto-provisioning (set to `''`)
 
 ### Database / Prisma
 - Prisma v6 with PostgreSQL
@@ -120,9 +120,9 @@ TRIAL_DAYS=14
 - In dev, schema changes can be pushed with: `cd backend && npx prisma db push --accept-data-loss`
 
 ### Unified Schema (Master Schema)
-`backend/prisma/schema.prisma` is the **master unified schema** for the entire Craft Suite. It includes all LectureCraft educator models AND all ScholarCraft student models:
+`backend/prisma/schema.prisma` is the **master unified schema** for the entire Craft Suite. It includes all LectureSuite educator models AND all ScholarCraft student models:
 
-- **LectureCraft models** (phases 1–11): User, Institution, Course, Assessment, Document, Notification, Workspace, Message, etc.
+- **LectureSuite models** (phases 1–11): User, Institution, Course, Assessment, Document, Notification, Workspace, Message, etc.
 - **ScholarCraft study models**: `StudySubject`, `StudyTask`, `StudySession`, `GpaSemester`, `GpaCourse`, `StudyTimetableEntry`
 - **Thesis/research models**: `Thesis`, `ThesisChapter`, `ThesisCitation`, `ThesisReferenceDocument`, `ThesisReferenceChunk`
 - **New enums added**: `StudyTaskPriority`, `ThesisStatus`, `ThesisChapterStatus`, `ThesisCitationType`, `ReferenceDocumentStatus`
@@ -154,17 +154,17 @@ When ScholarCraft needs new models, add them here and push to `craftsuite`. Scho
 
 ## SSO (Single Sign-On) from uamsatech.com
 
-LectureCraft participates in the Craft Suite SSO flow initiated from the uamsatech.com portal.
+LectureSuite participates in the Craft Suite SSO flow initiated from the uamsatech.com portal.
 
 ### Flow
 
 1. User logs into uamsatech.com portal
 2. Clicks "Launch LectureCraft" → navigates to `/portal/launch/lecturercraft`
 3. uamsatech.com signs a 5-minute launch token: `{ sub, email, type: "product_launch", target: "lecturercraft" }`
-4. Redirects to `http://localhost:3001/api/auth/sso?token=<token>` (via LectureCraft backend)
-5. LectureCraft backend (`GET /api/auth/sso`) verifies token with shared `JWT_ACCESS_SECRET`
+4. Redirects to `http://localhost:3001/api/auth/sso?token=<token>` (via LectureSuite backend)
+5. LectureSuite backend (`GET /api/auth/sso`) verifies token with shared `JWT_ACCESS_SECRET`
 6. Finds or creates the user (`role: LECTURER`, `password: ''`, `emailVerified: true`)
-7. Issues LectureCraft access + refresh tokens
+7. Issues LectureSuite access + refresh tokens
 8. Redirects to `http://localhost:3001/auth/sso?at=<accessToken>&rt=<refreshToken>`
 9. Frontend `SsoPage` saves tokens to localStorage and navigates to `/dashboard`
 
@@ -261,7 +261,7 @@ Backend sends `planTier`, frontend type said `subscriptionPlan`. Fixed to `planT
 | Product | Backend port | Frontend port | Database | Users |
 |---------|-------------|--------------|----------|-------|
 | uamsatech.com | — | 3000 | uamsatech (PostgreSQL) | All (platform login) |
-| LectureCraft | 4000 | 3001 | craftsuite (shared) | Educators |
+| LectureSuite | 4000 | 3001 | craftsuite (shared) | Educators |
 | ScholarCraft | 4001 | 3002 | craftsuite (shared) | Students |
 | ThesisCraft | 4002 | 5173 | thesiscraft (own) | All (research) |
 

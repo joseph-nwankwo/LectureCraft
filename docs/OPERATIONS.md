@@ -1,4 +1,4 @@
-# LectureCraft — Operations Guide
+# LectureSuite — Operations Guide
 
 ## Health Monitoring
 
@@ -26,7 +26,7 @@
 
 ### Grafana Dashboards
 
-Navigate to `http://grafana:3000` → LectureCraft folder:
+Navigate to `http://grafana:3000` → LectureSuite folder:
 - **Application Dashboard**: HTTP rates, latency, WebSocket, AI metrics, Node.js runtime
 - **Database Dashboard**: Query duration, connection pool, table sizes
 - **Redis Dashboard**: Memory usage, hit rate, queue depths

@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, X } from 'lucide-react'
+import { Check, X, Zap } from 'lucide-react'
 import { billingApi } from '@/lib/api/billing.api'
 import { ROUTES } from '@/constants/routes'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { Button } from '@/components/design-system/buttons/Button'
+import { Badge } from '@/components/design-system/display/Badge'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 interface Plan {
   id: string; name: string; slug: string; price: string; currency: string
@@ -25,7 +29,7 @@ const FEATURES = [
 const PLAN_COLORS: Record<string, string> = {
   free: 'border-gray-200',
   starter: 'border-blue-300',
-  professional: 'border-indigo-400 ring-2 ring-indigo-400',
+  professional: 'border-primary ring-2 ring-primary',
   enterprise: 'border-purple-400',
 }
 
@@ -62,23 +66,21 @@ export default function PlanComparisonPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading plans...</div>
+  if (loading) return <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8"><Skeleton className="mx-auto h-10 w-64 rounded-lg" /><div className="grid grid-cols-1 gap-4 md:grid-cols-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-96 rounded-lg" />)}</div></div>
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-gray-900">Choose Your Plan</h1>
-        <p className="text-gray-500 mt-2">Start free. Upgrade as you grow.</p>
-      </div>
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <PageHeader title="Choose Your Plan" description="Start free. Upgrade as you grow." icon={<Zap className="h-5 w-5" />} className="mb-8 text-center" />
 
       {/* Coupon */}
       <div className="flex justify-center mb-8">
-        <div className="flex gap-2">
+        <div className="flex w-full max-w-sm gap-2">
           <input
             value={coupon}
             onChange={(e) => setCoupon(e.target.value.toUpperCase())}
             placeholder="Coupon code"
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="Coupon code"
+            className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>
@@ -88,59 +90,55 @@ export default function PlanComparisonPage() {
         {plans.map((plan) => {
           const isCurrent = currentSub?.plan.slug === plan.slug
           return (
-            <div key={plan.id}
-              className={`bg-white rounded-xl border-2 p-6 flex flex-col ${PLAN_COLORS[plan.slug] ?? 'border-gray-200'} ${plan.slug === 'professional' ? 'relative' : ''}`}>
+            <article key={plan.id}
+              className={`relative flex flex-col rounded-lg border-2 bg-card p-6 shadow-card ${PLAN_COLORS[plan.slug] ?? 'border-border'} ${plan.slug === 'professional' ? 'ring-2 ring-primary' : ''}`}>
               {plan.slug === 'professional' && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full font-semibold">
-                  Most Popular
-                </div>
+                <Badge variant="primary" className="absolute -top-3 left-1/2 -translate-x-1/2">Most Popular</Badge>
               )}
-              <h2 className="text-lg font-bold text-gray-900">{plan.name}</h2>
-              <p className="text-sm text-gray-500 mt-1 min-h-[40px]">{plan.description}</p>
+              <h2 className="text-lg font-bold text-foreground">{plan.name}</h2>
+              <p className="mt-1 min-h-[40px] text-sm text-muted-foreground">{plan.description}</p>
               <div className="mt-4 mb-6">
-                <span className="text-3xl font-bold">${plan.price}</span>
-                <span className="text-gray-500 text-sm">/{plan.billingCycle === 'MONTHLY' ? 'mo' : 'yr'}</span>
+                <span className="text-3xl font-bold text-foreground">{plan.currency} {plan.price}</span>
+                <span className="text-sm text-muted-foreground">/{plan.billingCycle === 'MONTHLY' ? 'mo' : 'yr'}</span>
               </div>
-              <button
+              <Button
+                type="button"
+                variant={isCurrent ? 'secondary' : plan.slug === 'professional' ? 'primary' : 'outline'}
                 disabled={isCurrent || selecting === plan.id}
                 onClick={() => handleSelect(plan)}
-                className={`w-full py-2 rounded-lg text-sm font-semibold transition-colors ${
-                  isCurrent
-                    ? 'bg-gray-100 text-gray-400 cursor-default'
-                    : plan.slug === 'professional'
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50'
-                }`}>
+                className="mt-auto w-full"
+              >
                 {isCurrent ? 'Current Plan' : selecting === plan.id ? 'Processing...' : plan.price === '0' ? 'Get Started' : 'Select'}
-              </button>
-            </div>
+              </Button>
+            </article>
           )
         })}
       </div>
 
       {/* Feature comparison table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left p-4 font-semibold text-gray-700">Feature</th>
+            <tr className="border-b border-border bg-muted/50">
+              <th className="p-4 text-left font-semibold text-muted-foreground">Feature</th>
               {plans.map((p) => (
-                <th key={p.id} className="p-4 font-semibold text-gray-700 text-center">{p.name}</th>
+                <th key={p.id} className="p-4 text-center font-semibold text-muted-foreground">{p.name}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {FEATURES.map((feature, i) => (
-              <tr key={feature.key} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="p-4 text-gray-700">{feature.label}</td>
+              <tr key={feature.key} className={i % 2 === 0 ? 'bg-card' : 'bg-muted/20'}>
+                <td className="p-4 text-foreground">{feature.label}</td>
                 {plans.map((plan) => {
                   const val = (plan as unknown as Record<string, unknown>)[feature.key]
                   const formatted = feature.fmt(val as never)
                   return (
                     <td key={plan.id} className="p-4 text-center">
                       {typeof formatted === 'boolean'
-                        ? (formatted ? <Check className="w-4 h-4 text-green-500 mx-auto" /> : <X className="w-4 h-4 text-gray-300 mx-auto" />)
-                        : <span className="text-gray-700">{formatted}</span>}
+                        ? (formatted ? <Check aria-label="Included" className="mx-auto h-4 w-4 text-success" /> : <X aria-label="Not included" className="mx-auto h-4 w-4 text-muted-foreground" />)
+                        : <span className="text-foreground">{formatted}</span>}
                     </td>
                   )
                 })}
@@ -148,6 +146,7 @@ export default function PlanComparisonPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

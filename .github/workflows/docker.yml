@@ -109,7 +109,7 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           build-args: |
             VITE_API_URL=${{ secrets.PROD_API_URL }}/api
-            VITE_APP_NAME=LectureCraft
+            VITE_APP_NAME=LectureSuite
             VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN_FRONTEND }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, BookOpen, ClipboardList, FileText, Download,
-  Loader2, AlertCircle, ExternalLink,
+  AlertCircle, ExternalLink,
 } from 'lucide-react'
 import { coursesApi, type CourseDocument, type CourseAssessment, type JoinedCourse } from '@/lib/api/courses.api'
 import { ROUTES, buildRoute } from '@/constants/routes'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/design-system/layout/PageHeader'
+import { EmptyState } from '@/components/design-system/feedback/EmptyState'
+import { Skeleton } from '@/components/design-system/feedback/Skeleton'
 
 type Tab = 'notes' | 'assessments'
 
@@ -51,9 +54,7 @@ export default function StudentLecturerCourseDetailPage() {
   }, [id])
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    </div>
+    <div className="mx-auto max-w-4xl space-y-4 px-4 py-6 sm:px-6 sm:py-8"><Skeleton className="h-10 w-64 rounded-lg" /><Skeleton className="h-48 rounded-lg" /><Skeleton className="h-64 rounded-lg" /></div>
   )
 
   if (error) return (
@@ -72,24 +73,21 @@ export default function StudentLecturerCourseDetailPage() {
   return (
     <>
       {/* Header */}
-      <div className="px-6 py-5 border-b border-border bg-background">
-        <button onClick={() => navigate(ROUTES.STUDENT_COURSES)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
+      <div className="border-b border-border bg-background px-4 pt-6 sm:px-6">
+        <button type="button" onClick={() => navigate(ROUTES.STUDENT_COURSES)}
+          className="mb-3 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to my courses
         </button>
-        <h1 className="text-lg font-semibold text-foreground">{course.title}</h1>
-        <div className="flex flex-wrap items-center gap-3 mt-1">
+        <PageHeader title={course.title} description={course.description ?? undefined} icon={<BookOpen className="h-5 w-5" />} />
+        <div className="flex flex-wrap items-center gap-3 pb-6 mt-1">
           {course.code && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{course.code}</span>}
           <span className="text-xs text-muted-foreground">{course.level}</span>
           {course.department && <span className="text-xs text-muted-foreground">{course.department}</span>}
           {course.user?.name && <span className="text-xs text-muted-foreground">Lecturer: {course.user.name}</span>}
         </div>
-        {course.description && (
-          <p className="text-sm text-muted-foreground mt-2 max-w-2xl">{course.description}</p>
-        )}
       </div>
 
-      <div className="px-6 py-5 max-w-4xl mx-auto">
+      <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
         {/* Tabs */}
         <div className="flex gap-0 border-b border-border mb-6">
           {([
@@ -112,15 +110,11 @@ export default function StudentLecturerCourseDetailPage() {
         {/* Lecture notes */}
         {tab === 'notes' && (
           docs.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
-              <BookOpen className="mx-auto mb-3 h-8 w-8 opacity-30" />
-              <p className="font-medium text-sm">No lecture notes posted yet</p>
-              <p className="text-xs mt-1 text-muted-foreground">Check back after your lecturer uploads materials</p>
-            </div>
+            <EmptyState icon={<BookOpen className="h-7 w-7" />} title="No lecture notes posted yet" description="Check back after your lecturer uploads materials" />
           ) : (
             <div className="space-y-3">
               {docs.map((d) => (
-                <div key={d.id} className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-primary/40 transition-colors">
+                <article key={d.id} className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/40">
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
@@ -150,7 +144,7 @@ export default function StudentLecturerCourseDetailPage() {
                       <ExternalLink className="h-3.5 w-3.5" /> View
                     </Link>
                   )}
-                </div>
+                </article>
               ))}
             </div>
           )
@@ -159,11 +153,7 @@ export default function StudentLecturerCourseDetailPage() {
         {/* Assessments */}
         {tab === 'assessments' && (
           assessments.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground border border-dashed border-border rounded-xl">
-              <ClipboardList className="mx-auto mb-3 h-8 w-8 opacity-30" />
-              <p className="font-medium text-sm">No assessments posted yet</p>
-              <p className="text-xs mt-1 text-muted-foreground">Your lecturer hasn't posted any assignments, quizzes, or tests yet</p>
-            </div>
+            <EmptyState icon={<ClipboardList className="h-7 w-7" />} title="No assessments posted yet" description="Your lecturer hasn't posted any assignments, quizzes, or tests yet" />
           ) : (
             <div className="space-y-6">
               {openAssessments.length > 0 && (
@@ -202,7 +192,7 @@ function AssessmentCard({ assessment: a, badgeColor, past = false }: {
   past?: boolean
 }) {
   return (
-    <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl">
+    <article className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 shadow-card">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-medium text-foreground">{a.title}</p>
@@ -229,6 +219,6 @@ function AssessmentCard({ assessment: a, badgeColor, past = false }: {
           Start
         </Link>
       )}
-    </div>
+    </article>
   )
 }

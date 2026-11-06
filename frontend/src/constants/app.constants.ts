@@ -1,4 +1,4 @@
-export const APP_NAME = 'LectureCraft'
+export const APP_NAME = 'LectureSuite'
 export const APP_DESCRIPTION = 'AI-powered academic content creation for educators'
 export const APP_VERSION = '1.0.0'
 

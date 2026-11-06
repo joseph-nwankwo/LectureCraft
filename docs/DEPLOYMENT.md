@@ -1,4 +1,4 @@
-# LectureCraft — Deployment Guide
+# LectureSuite — Deployment Guide
 
 ## Prerequisites
 
@@ -240,7 +240,7 @@ curl https://lecturecraft.app/api/auth/login \
 curl http://localhost:9090/api/v1/targets  # shows lecturecraft_backend as UP
 
 # 5. Grafana dashboard loads
-# Navigate to http://your-grafana:3000 → LectureCraft dashboard
+# Navigate to http://your-grafana:3000 → LectureSuite dashboard
 ```
 
 ---
