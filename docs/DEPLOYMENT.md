@@ -1,260 +1,199 @@
 # LectureSuite — Deployment Guide
 
-## Prerequisites
+## What's already done in code
 
-- Docker 24+, Docker Compose v2+
-- Node.js 20+ (for local development)
-- PostgreSQL 16 (provided via Docker)
-- Redis 7 (provided via Docker)
-- An AWS account with S3 bucket (for file uploads)
-- SMTP credentials (SendGrid, AWS SES, etc.)
-- AI API keys (OpenAI and/or Anthropic recommended)
-
----
-
-## Local Development
-
-### 1. Clone and install
-
-```bash
-git clone https://github.com/your-org/lecturecraft.git
-cd lecturecraft
-npm run install:all        # installs both backend and frontend deps
-```
-
-### 2. Configure environment
-
-```bash
-cp backend/.env.example backend/.env
-# Edit backend/.env with your local values
-```
-
-Minimum required variables for local dev:
-```env
-DATABASE_URL=postgresql://lecturercraft:lecturercraft_dev@localhost:5432/lecturercraft
-REDIS_URL=redis://localhost:6379
-JWT_ACCESS_SECRET=any-32-char-local-dev-secret-here
-JWT_REFRESH_SECRET=any-32-char-local-dev-secret-here-2
-COOKIE_SECRET=any-32-char-local-cookie-secret
-FRONTEND_URL=http://localhost:3001
-```
-
-### 3. Start infrastructure
-
-```bash
-docker compose up -d postgres redis
-```
-
-### 4. Run migrations
-
-```bash
-cd backend
-npm run db:migrate        # creates tables and runs all migrations
-npm run db:generate       # regenerates Prisma client
-```
-
-### 5. Start dev servers
-
-```bash
-# From repo root:
-npm run dev               # concurrently starts backend (4000) + frontend (3001)
-```
+| Item | Status |
+|------|--------|
+| Backend Dockerfile (multi-stage, non-root) | ✅ |
+| `backend/scripts/start.sh` — auto-runs Prisma migrations on deploy | ✅ |
+| `backend/railway.toml` — Railway deploy config | ✅ |
+| `frontend/vercel.json` — Vercel SPA config | ✅ |
+| `backend/.env.production.template` — every env var documented | ✅ |
+| CI: all required env vars present | ✅ |
+| DB naming fixed to `craftsuite` everywhere | ✅ |
+| P0-03 migration script (`backend/scripts/rename-product-identifiers.sql`) | ✅ |
 
 ---
 
-## Docker Compose (Full Stack)
+## Step 1 — External accounts you need to create
 
-```bash
-docker compose up -d      # starts: postgres, redis, backend, frontend, prometheus, grafana
-```
-
-Services available:
-- Frontend: http://localhost:3001
-- Backend API: http://localhost:4000
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000 (admin/admin)
-
----
-
-## Production Deployment
-
-### Option A — Docker Compose on a VPS/Cloud VM
-
-#### 1. Provision server
-
-Recommended: Ubuntu 22.04 LTS, 4 vCPU, 8GB RAM, 100GB SSD
-
-```bash
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-usermod -aG docker $USER
-```
-
-#### 2. Clone and configure
-
-```bash
-git clone https://github.com/your-org/lecturecraft.git /opt/lecturecraft
-cd /opt/lecturecraft
-
-# Create production env file
-cp .env.production.example .env.production
-# Fill in all production values
-```
-
-#### 3. SSL certificates
-
-Using Let's Encrypt with Certbot:
-```bash
-apt install certbot
-certbot certonly --standalone -d lecturecraft.app -d www.lecturecraft.app
-# Certs saved to /etc/letsencrypt/live/lecturecraft.app/
-mkdir -p /opt/lecturecraft/nginx/ssl
-ln -s /etc/letsencrypt/live/lecturecraft.app/fullchain.pem /opt/lecturecraft/nginx/ssl/
-ln -s /etc/letsencrypt/live/lecturecraft.app/privkey.pem /opt/lecturecraft/nginx/ssl/
-```
-
-#### 4. Deploy
-
-```bash
-cd /opt/lecturecraft
-
-# Pull and build images
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml build
-
-# Run migrations (first deploy only, or after schema changes)
-docker compose -f docker-compose.prod.yml run --rm backend \
-  sh -c "npx prisma migrate deploy && node dist/app.js --seed"
-
-# Start all services
-docker compose -f docker-compose.prod.yml up -d
-```
-
-#### 5. Verify
-
-```bash
-curl https://lecturecraft.app/health
-# Expected: {"status":"ok","timestamp":"...","version":"1.0.0","uptime":N}
-```
-
-### Option B — Kubernetes (GKE / EKS / AKS)
-
-#### 1. Prerequisites
-
-```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-
-# Create secrets (replace with actual values)
-kubectl create secret generic lecturecraft-secrets \
-  --namespace lecturecraft \
-  --from-literal=DATABASE_URL="postgresql://..." \
-  --from-literal=JWT_ACCESS_SECRET="..." \
-  # ... other secrets from k8s/secrets.example.yaml
-```
-
-#### 2. Deploy infrastructure
-
-```bash
-kubectl apply -f k8s/postgres-statefulset.yaml
-kubectl apply -f k8s/redis-deployment.yaml
-```
-
-#### 3. Deploy application
-
-```bash
-# Update image tags in deployment files, then:
-kubectl apply -f k8s/backend-deployment.yaml
-kubectl apply -f k8s/frontend-deployment.yaml
-kubectl apply -f k8s/ingress.yaml
-kubectl apply -f k8s/hpa.yaml
-```
-
-#### 4. Run migrations via Job
-
-```bash
-kubectl create job --namespace lecturecraft db-migrate \
-  --image=ghcr.io/your-org/lecturecraft-backend:latest \
-  -- sh -c "npx prisma migrate deploy"
-```
-
-### Option C — Managed Platforms
-
-**Backend → Railway**
-```
-1. Connect GitHub repo
-2. Set root directory to /backend
-3. Add all env vars from .env.production.example
-4. Deploy command: npm run build && npm start
-5. Set DATABASE_URL to Railway's PostgreSQL plugin
-```
-
-**Frontend → Vercel**
-```
-1. Import GitHub repo
-2. Set root directory to /frontend
-3. Build command: npm run build
-4. Output directory: dist
-5. Set VITE_API_URL to your Railway backend URL
-```
+| Service | Purpose | Free tier |
+|---------|---------|-----------|
+| [Railway](https://railway.app) | Backend hosting (Node + PostgreSQL + Redis) | $5 credit/month |
+| [Vercel](https://vercel.com) | Frontend hosting | Free |
+| [SendGrid](https://sendgrid.com) OR [Resend](https://resend.com) | Transactional email | 100/day free (SG) · 3k/mo free (Resend) |
+| [Stripe](https://stripe.com) | Payments | Free until you charge |
+| [AWS S3](https://aws.amazon.com/s3/) OR [Cloudflare R2](https://developers.cloudflare.com/r2/) | File uploads | R2 is cheaper (no egress fees) |
+| [Sentry](https://sentry.io) | Error tracking | Free tier |
 
 ---
 
-## Environment Variables Reference
+## Step 2 — Generate & save production secrets
 
-See `.env.example` in the repository root for the complete annotated list.
+Run once on any machine with Node installed:
 
-**Critical production variables:**
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `REDIS_URL` | ✅ | Redis connection string |
-| `JWT_ACCESS_SECRET` | ✅ | Min 32 chars, random |
-| `JWT_REFRESH_SECRET` | ✅ | Min 32 chars, random, different from above |
-| `COOKIE_SECRET` | ✅ | Min 32 chars, for signed cookies |
-| `FRONTEND_URL` | ✅ | e.g. `https://lecturecraft.app` |
-| `OPENAI_API_KEY` | ✅ | AI generation |
-| `STRIPE_SECRET_KEY` | ⚠️ | Required if using Stripe billing |
-| `AWS_S3_BUCKET` | ⚠️ | Required for file uploads |
-| `SMTP_HOST` | ⚠️ | Required for email notifications |
-| `SENTRY_DSN` | ○ | Error tracking (recommended in production) |
+```bash
+node -e "
+const c = require('crypto');
+const gen = () => c.randomBytes(48).toString('base64url');
+console.log('JWT_ACCESS_SECRET=' + gen());
+console.log('JWT_REFRESH_SECRET=' + gen());
+console.log('COOKIE_SECRET=' + gen());
+console.log('CRAFT_LAUNCH_SECRET=' + gen());   // SAME value in all three apps
+console.log('CENTRAL_ENTITLEMENT_SERVICE_SECRET=' + gen());
+"
+```
+
+**CRAFT_LAUNCH_SECRET must be identical in LectureSuite backend, ScholarSuite backend,
+and the uamsatech portal. All other secrets are unique per product.**
+
+Save these in a password manager immediately — they cannot be recovered later.
 
 ---
 
-## Post-Deployment Checks
+## Step 3 — Railway (LectureSuite backend)
 
-```bash
-# 1. Health endpoints
-curl https://lecturecraft.app/health
-curl https://lecturecraft.app/health/ready
+1. Go to railway.app → New Project → Deploy from GitHub repo → select `LectureCraft`
+2. Railway auto-detects `backend/railway.toml` and the `Dockerfile`
+3. Add a **PostgreSQL** plugin: Railway provisions it and sets `DATABASE_URL` automatically
+4. Add a **Redis** plugin: sets `REDIS_URL` automatically
+5. Under Variables, add every var from `backend/.env.production.template`:
 
-# 2. API responds
-curl https://lecturecraft.app/api/auth/login \
-  -X POST -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"..."}' | jq .
-
-# 3. WebSocket accessible
-# Open browser DevTools → Network → filter WS
-
-# 4. Prometheus scraping
-curl http://localhost:9090/api/v1/targets  # shows lecturecraft_backend as UP
-
-# 5. Grafana dashboard loads
-# Navigate to http://your-grafana:3000 → LectureSuite dashboard
 ```
+NODE_ENV=production
+PORT=4000
+FRONTEND_URL=https://lecturesuite.uamsatech.com
+APP_URL=https://api.lecturesuite.uamsatech.com
+JWT_ACCESS_SECRET=<your generated value>
+JWT_REFRESH_SECRET=<your generated value>
+COOKIE_SECRET=<your generated value>
+COOKIE_DOMAIN=.uamsatech.com
+CRAFT_LAUNCH_SECRET=<shared value — same in all apps>
+CENTRAL_ENTITLEMENT_URL=https://uamsatech.com/api/internal/entitlements/verify
+CENTRAL_ENTITLEMENT_SERVICE_SECRET=<your generated value>
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=SG.<your sendgrid key>
+SMTP_FROM=LectureSuite <noreply@uamsatech.com>
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_S3_BUCKET=lecturesuite-prod-uploads
+SENTRY_DSN=https://...
+OPENAI_API_KEY=sk-...        # or ANTHROPIC_API_KEY
+```
+
+6. Railway sets the custom domain under Settings → Networking → Add Domain
+   → set it to `api.lecturesuite.uamsatech.com`
+7. First deploy runs `start.sh` → `prisma migrate deploy` → server starts
+8. Health check: `GET https://api.lecturesuite.uamsatech.com/health` → `{"status":"ok"}`
 
 ---
 
-## Automated Backups
+## Step 4 — Vercel (LectureSuite frontend)
 
-Set up a cron job on the production server:
+1. vercel.com → New Project → Import `LectureCraft` repo
+2. Set **Root Directory** to `frontend`
+3. Framework preset: **Vite** (auto-detected via `vercel.json`)
+4. Environment variables:
+```
+VITE_API_URL=https://api.lecturesuite.uamsatech.com/api
+VITE_APP_NAME=LectureSuite
+```
+5. Add custom domain `lecturesuite.uamsatech.com` under Project → Domains
+
+---
+
+## Step 5 — Vercel (uamsatech portal)
+
+1. vercel.com → New Project → Import `uamsatech` repo
+2. Root directory: `.` (repo root — it's a Next.js app)
+3. Framework: **Next.js** (auto-detected)
+4. Environment variables:
+```
+DATABASE_URL=<same Railway PostgreSQL URL>
+NEXTAUTH_SECRET=<generate a new one>
+NEXTAUTH_URL=https://uamsatech.com
+CRAFT_LAUNCH_SECRET=<shared value>
+CENTRAL_ENTITLEMENT_SERVICE_SECRET=<same as backend>
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+PAYSTACK_SECRET_KEY=sk_live_...   # if using Paystack
+```
+5. Add domains: `uamsatech.com` and `www.uamsatech.com`
+
+---
+
+## Step 6 — DNS (Cloudflare recommended)
+
+After Vercel and Railway give you their URLs:
+
+| Record | Type | Value |
+|--------|------|-------|
+| `uamsatech.com` | CNAME | `cname.vercel-dns.com` |
+| `www` | CNAME | `cname.vercel-dns.com` |
+| `lecturesuite` | CNAME | `cname.vercel-dns.com` |
+| `api.lecturesuite` | CNAME | `<your-railway-service>.railway.app` |
+
+---
+
+## Step 7 — Run P0-03 DB migration (one-time)
+
+After the first Railway deploy, run this once against the production DB:
+
 ```bash
-# /etc/cron.d/lecturecraft-backup
-0 2 * * * root cd /opt/lecturecraft && ./backend/scripts/backup.sh >> /var/log/lecturecraft-backup.log 2>&1
+# Option A — from your local machine (needs DATABASE_URL in env)
+DATABASE_URL="postgresql://..." npx prisma db execute \
+  --file backend/scripts/rename-product-identifiers.sql \
+  --schema backend/prisma/schema.prisma
+
+# Option B — Railway CLI
+railway run --service lecturesuite-backend \
+  npx prisma db execute --file scripts/rename-product-identifiers.sql \
+  --schema prisma/schema.prisma
 ```
 
-Configure S3 upload in backup script:
-```env
-AWS_S3_BACKUP_BUCKET=lecturecraft-backups
-BACKUP_RETENTION_DAYS=30
-```
+Expected output: 0 rows returned (means old identifiers are gone).
+
+---
+
+## Step 8 — GitHub Actions secrets
+
+Add these in each repo → Settings → Secrets and variables → Actions:
+
+| Secret | Used by |
+|--------|---------|
+| `CODECOV_TOKEN` | Coverage upload in CI |
+| `STAGING_HOST` | deploy.yml SSH target |
+| `STAGING_USER` | deploy.yml SSH user |
+| `STAGING_SSH_KEY` | deploy.yml private key |
+
+Railway and Vercel deploy automatically on push to `main` — no manual deploy step needed once connected.
+
+---
+
+## Stripe webhook setup
+
+1. Stripe Dashboard → Developers → Webhooks → Add endpoint
+2. URL: `https://api.lecturesuite.uamsatech.com/api/billing/stripe/webhook`
+3. Events to listen for:
+   - `checkout.session.completed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+   - `invoice.payment_failed`
+4. Copy the signing secret → set as `STRIPE_WEBHOOK_SECRET` in Railway
+
+---
+
+## Smoke-test checklist after deploy
+
+- [ ] `GET /health` returns `{"status":"ok"}`
+- [ ] Portal home page loads at `uamsatech.com`
+- [ ] LectureSuite frontend loads at `lecturesuite.uamsatech.com`
+- [ ] Sign up creates a user + sends verification email
+- [ ] Launch from portal → redirected to LectureSuite with JWT in URL → auto logged in
+- [ ] Stripe checkout completes a test payment (`4242 4242 4242 4242`)
