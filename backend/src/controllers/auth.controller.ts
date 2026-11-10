@@ -270,6 +270,14 @@ export const authController = {
           emailVerified: true,
         },
       })
+    } else {
+      // Portal is the identity provider for SSO users. Clear any locally-set
+      // password so a pre-registered account cannot retain password access
+      // after the real owner launches via SSO.
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data:  { emailVerified: true, status: 'ACTIVE', password: '' },
+      })
     }
 
     const productRole = await prisma.userProductRole.upsert({
