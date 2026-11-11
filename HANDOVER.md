@@ -57,7 +57,7 @@ npm run db:studio --prefix backend    # visual DB browser
 ```env
 NODE_ENV=development
 PORT=4000
-DATABASE_URL=postgresql://postgres:chinedu.56@localhost:5432/craftsuite
+DATABASE_URL=postgresql://postgres:<your-password>@localhost:5432/craftsuite
 JWT_ACCESS_SECRET=craft-suite-shared-access-secret-uamsatech-platform-2026-change-in-prod
 JWT_REFRESH_SECRET=craft-suite-shared-refresh-secret-uamsatech-platform-2026-change-in-prod
 JWT_ACCESS_EXPIRES_IN=15m
