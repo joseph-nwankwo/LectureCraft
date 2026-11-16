@@ -446,10 +446,20 @@ export const analyticsService = {
   },
 
   // ── Approval analytics ────────────────────────────────────────────
-  async getApprovalStats(opts: { institutionId?: string; range?: DateRange }) {
+  // institutionId OR userId must be provided. If neither is supplied the method
+  // returns empty stats rather than issuing an unscoped cross-institution query.
+  async getApprovalStats(opts: { institutionId?: string; userId?: string; range?: DateRange }) {
     const r = opts.range ?? last30Days()
-    const where: Record<string, unknown> = {}
-    if (opts.institutionId) where.document = { institutionId: opts.institutionId }
+
+    if (!opts.institutionId && !opts.userId) {
+      return { total: 0, approvalRate: 0, thisperiod: 0, byStatus: [], byStage: [] }
+    }
+
+    // Scope to institution when available, otherwise to the specific user's documents.
+    const docScope = opts.institutionId
+      ? { institutionId: opts.institutionId }
+      : { userId: opts.userId! }
+    const where = { document: docScope }
 
     const [byStatus, byStage, thisperiod] = await Promise.all([
       prisma.approvalWorkflow.groupBy({ by: ['status'], where, _count: { _all: true } }),

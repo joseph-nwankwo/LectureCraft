@@ -56,20 +56,27 @@ apiClient.interceptors.response.use(
     isRefreshing = true
 
     try {
-      const refreshToken = localStorage.getItem('refreshToken')
-      if (!refreshToken) throw new Error('No refresh token')
-
-      const { data } = await axios.post<{ accessToken: string; refreshToken: string }>(
+      // The refresh token is an HttpOnly cookie — the browser sends it
+      // automatically because withCredentials:true is set on apiClient.
+      // A legacy localStorage token is sent as a fallback body param for
+      // sessions created before the cookie-based flow was introduced.
+      const legacyRt = localStorage.getItem('refreshToken')
+      const { data } = await axios.post<{ status: string; tokens?: { accessToken: string } }>(
         `${BASE_URL}/auth/refresh`,
-        { refreshToken }
+        legacyRt ? { refreshToken: legacyRt } : {},
+        { withCredentials: true }
       )
 
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-      apiClient.defaults.headers.common.Authorization = `Bearer ${data.accessToken}`
+      const newAt = data.tokens?.accessToken
+      if (!newAt) throw new Error('No access token in refresh response')
 
-      processQueue(null, data.accessToken)
-      original.headers.Authorization = `Bearer ${data.accessToken}`
+      localStorage.setItem('accessToken', newAt)
+      // Legacy RT no longer needed — backend now manages it via cookie.
+      localStorage.removeItem('refreshToken')
+      apiClient.defaults.headers.common.Authorization = `Bearer ${newAt}`
+
+      processQueue(null, newAt)
+      original.headers.Authorization = `Bearer ${newAt}`
       return apiClient(original)
     } catch (refreshError) {
       processQueue(refreshError)

@@ -74,8 +74,9 @@ const changePasswordSchema = z.object({
   newPassword:     passwordSchema,
 })
 
-// ── SSO callback (no rate limit — token is short-lived and single-use) ───────
-router.get('/sso', authController.ssoCallback)
+// ── SSO callback + exchange (no rate limit — tokens are short-lived/single-use)
+router.get ('/sso',          authController.ssoCallback)
+router.post('/sso/exchange', authController.ssoExchange)
 
 // ── Public routes (rate limited) ─────────────────────────────────────────────
 router.get('/institutions',          authController.listInstitutions)

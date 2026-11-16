@@ -144,7 +144,7 @@ export const reportService = {
       analyticsService.getLecturerDashboard(opts.userId, opts.range),
       analyticsService.getDocumentStats({ userId: opts.userId, range: opts.range }),
       analyticsService.getAIUsageStats({ userId: opts.userId, range: opts.range }),
-      analyticsService.getApprovalStats({ institutionId: opts.institutionId ?? undefined, range: opts.range }),
+      analyticsService.getApprovalStats({ institutionId: opts.institutionId ?? undefined, userId: opts.userId, range: opts.range }),
     ])
 
     if (opts.format === 'csv') {

@@ -2,6 +2,7 @@ import { Server as HTTPServer } from 'http'
 import { Server as SocketServer, Socket } from 'socket.io'
 import jwt from 'jsonwebtoken'
 import { env } from '../config/env'
+import { prisma } from '../config/database'
 import { presenceService } from '../services/presence/presence.service'
 import { messageService } from '../services/messaging/message.service'
 import { conversationService } from '../services/messaging/conversation.service'
@@ -99,6 +100,13 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
 
     // ── Conversation rooms ─────────────────────────────────────────
     socket.on('conversation:join', async ({ conversationId }: { conversationId: string }) => {
+      const member = await prisma.conversationMember.findUnique({
+        where: { conversationId_userId: { conversationId, userId } },
+      }).catch(() => null)
+      if (!member) {
+        socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
+        return
+      }
       socket.join(`conv:${conversationId}`)
       socket.emit('conversation:joined', { conversationId })
     })
@@ -164,6 +172,12 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
 
     socket.on('message:read', async ({ conversationId }: { conversationId: string }) => {
       try {
+        // Explicit membership check before the DB write — do not rely on Prisma
+        // throwing P2025 to silently prevent unauthorised receipts.
+        const member = await prisma.conversationMember.findUnique({
+          where: { conversationId_userId: { conversationId, userId } },
+        })
+        if (!member) return
         await conversationService.markRead(conversationId, userId)
         socket.to(`conv:${conversationId}`).emit('message:read', { conversationId, userId, readAt: new Date() })
       } catch {
@@ -197,7 +211,31 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
     })
 
     // ── Workspace rooms ────────────────────────────────────────────
-    socket.on('workspace:join', ({ workspaceId }: { workspaceId: string }) => {
+    socket.on('workspace:join', async ({ workspaceId }: { workspaceId: string }) => {
+      // Members always have access. For PUBLIC workspaces the user must still
+      // belong to the same institution as the workspace (institutional ownership).
+      const [member, workspace] = await Promise.all([
+        prisma.workspaceMember.findUnique({
+          where: { workspaceId_userId: { workspaceId, userId } },
+        }).catch(() => null),
+        prisma.workspace.findUnique({
+          where: { id: workspaceId },
+          select: { institutionId: true, visibility: true },
+        }).catch(() => null),
+      ])
+
+      if (!workspace) {
+        socket.emit('error', { code: 'NOT_FOUND', message: 'Workspace not found' })
+        return
+      }
+
+      const isInstitutionMember = institutionId && workspace.institutionId === institutionId
+      const allowed = !!member || (workspace.visibility === 'PUBLIC' && isInstitutionMember)
+      if (!allowed) {
+        socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this workspace' })
+        return
+      }
+
       socket.join(`workspace:${workspaceId}`)
       socket.emit('workspace:joined', { workspaceId })
     })

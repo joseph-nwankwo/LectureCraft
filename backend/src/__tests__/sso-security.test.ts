@@ -44,13 +44,21 @@ process.env.FRONTEND_URL        = FRONTEND_URL
 
 jest.mock('../config/database', () => ({
   prisma: {
-    user:            { findUnique: jest.fn(), create: jest.fn() },
+    user:            { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     userProductRole: { upsert: jest.fn() },
     refreshToken:    { create: jest.fn() },
   },
 }))
 
-jest.mock('../config/redis', () => ({ redis: { set: jest.fn() } }))
+jest.mock('../services/storage/storage.service', () => ({
+  isR2Configured:          jest.fn().mockReturnValue(false),
+  validateImageMagicBytes: jest.fn(),
+  mimeToExt:               jest.fn(),
+  uploadToR2:              jest.fn(),
+  deleteFromR2:            jest.fn(),
+}))
+
+jest.mock('../config/redis', () => ({ redis: { set: jest.fn(), getdel: jest.fn() } }))
 
 jest.mock('../services/auth/jwt.service', () => ({
   signAccessToken:    jest.fn(),
@@ -60,7 +68,7 @@ jest.mock('../services/auth/jwt.service', () => ({
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { prisma } = require('../config/database') as {
   prisma: {
-    user:            { findUnique: jest.Mock; create: jest.Mock }
+    user:            { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock }
     userProductRole: { upsert: jest.Mock }
   }
 }
@@ -88,6 +96,7 @@ beforeEach(() => {
     return Promise.resolve('OK')
   })
   prisma.user.findUnique.mockResolvedValue(mockUser)
+  prisma.user.update.mockResolvedValue(mockUser)
   prisma.userProductRole.upsert.mockResolvedValue({ id: 'role-1', userId: mockUser.id, product: PRODUCT, role: PRODUCT_ROLE })
   jwtService.signAccessToken.mockReturnValue('mock-access-token')
   jwtService.createRefreshToken.mockResolvedValue('mock-refresh-token')
@@ -131,11 +140,15 @@ const sso = (token: string) => supertest(buildApp()).get(`/api/auth/sso?token=${
 // ── P0-01: launch-token verification ──────────────────────────────────────────
 
 describe(`P0-01: SSO launch token verification (${PRODUCT})`, () => {
-  it('accepts a valid launch token signed with CRAFT_LAUNCH_SECRET and issues a product session', async () => {
+  it('accepts a valid launch token and redirects with a short-lived authorization code (no tokens in URL)', async () => {
     const res = await sso(buildLaunchToken())
     expect(res.status).toBe(302)
-    expect(res.headers.location).toMatch(new RegExp(`^${FRONTEND_URL}/auth/sso\\?at=`))
-    expect(jwtService.signAccessToken).toHaveBeenCalledTimes(1)
+    // Must redirect with ?code= only — never with ?at= or ?rt= (CVE-LS-003)
+    expect(res.headers.location).toMatch(new RegExp(`^${FRONTEND_URL}/auth/sso\\?code=`))
+    expect(res.headers.location).not.toContain('at=')
+    expect(res.headers.location).not.toContain('rt=')
+    // signAccessToken is NOT called here — it happens in POST /sso/exchange
+    expect(jwtService.signAccessToken).not.toHaveBeenCalled()
   })
 
   it('records the jti atomically with SET ... EX <ttl> NX', async () => {
@@ -246,7 +259,8 @@ describe(`P0-01: SSO launch token verification (${PRODUCT})`, () => {
     const token = buildLaunchToken()
     expect((await sso(token)).status).toBe(302)
     expect((await sso(token)).status).toBe(401)
-    expect(jwtService.signAccessToken).toHaveBeenCalledTimes(1)
+    // The first request issues a code redirect, not an access token
+    expect(jwtService.signAccessToken).not.toHaveBeenCalled()
   })
 
   it('fails CLOSED when Redis errors: 503, no user lookup, no session issued', async () => {
