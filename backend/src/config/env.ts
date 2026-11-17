@@ -29,6 +29,9 @@ const baseEnvSchema = z.object({
   FRONTEND_URL:    z.string().default('http://localhost:3001'),
   APP_URL:         z.string().default('http://localhost:4000'),
   SCHOLARCRAFT_URL: z.string().default('http://localhost:3002'),
+  // URL of the UAMSA Tech portal launch endpoint for this product.
+  // Required for the SSO initiation flow (GET /api/auth/sso/initiate).
+  PORTAL_LAUNCH_URL: z.string().url().optional(),
   // Optional extra CORS origins for migration windows (comma-separated absolute origins).
   // Example: ADDITIONAL_FRONTEND_URLS=https://lecturesuite.app
   // Leave unset or empty in production until DNS and TLS are confirmed.

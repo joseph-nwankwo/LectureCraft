@@ -30,7 +30,8 @@ export interface Submission {
   assessmentId: string
   courseId: string | null
   content: string | null
-  fileUrl: string | null
+  fileKey: string | null    // private R2 key — never a public URL; download via /submissions/:id/file
+  fileUrl: string | null    // legacy local dev path only
   fileName: string | null
   fileSize: number | null
   fileType: string | null

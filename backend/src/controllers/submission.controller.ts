@@ -43,32 +43,39 @@ export const submissionController = {
 
   // Lecturer: list all submissions for an assignment
   getAssignmentSubmissions: asyncHandler(async (req: Request, res: Response) => {
-    const lecturerId   = req.user!.userId
-    const assessmentId = String(req.params.assessmentId)
+    const lecturerId          = req.user!.userId
+    const lecturerRole        = req.user!.role
+    const lecturerInstitutionId = req.user!.institutionId ?? null
+    const assessmentId        = String(req.params.assessmentId)
 
-    const data = await submissionService.getAssignmentSubmissions(assessmentId, lecturerId)
+    const data = await submissionService.getAssignmentSubmissions(
+      assessmentId, lecturerId, lecturerRole, lecturerInstitutionId,
+    )
     res.json({ status: 'success', data })
   }),
 
   // Lecturer: grade a submission
   grade: asyncHandler(async (req: Request, res: Response) => {
-    const graderId      = req.user!.userId
-    const submissionId  = String(req.params.id)
+    const graderId            = req.user!.userId
+    const graderInstitutionId = req.user!.institutionId ?? null
+    const submissionId        = String(req.params.id)
     const { grade, feedback } = req.body as { grade: number; feedback?: string }
 
     if (grade === undefined) throw AppError.badRequest('grade is required')
 
-    const data = await submissionService.grade(submissionId, graderId, Number(grade), feedback)
+    const data = await submissionService.grade(submissionId, graderId, graderInstitutionId, Number(grade), feedback)
     res.json({ status: 'success', data })
   }),
 
   // Lecturer: return submission with feedback (no grade)
   returnSubmission: asyncHandler(async (req: Request, res: Response) => {
-    const submissionId = String(req.params.id)
-    const { feedback } = req.body as { feedback: string }
+    const actorId            = req.user!.userId
+    const actorInstitutionId = req.user!.institutionId ?? null
+    const submissionId       = String(req.params.id)
+    const { feedback }       = req.body as { feedback: string }
     if (!feedback) throw AppError.badRequest('feedback is required')
 
-    const data = await submissionService.returnSubmission(submissionId, feedback)
+    const data = await submissionService.returnSubmission(submissionId, actorId, actorInstitutionId, feedback)
     res.json({ status: 'success', data })
   }),
 

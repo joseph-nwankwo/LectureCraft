@@ -3,18 +3,34 @@ import { AppError } from '../../utils/errors'
 import type { WorkspaceVisibility, WorkspaceMemberRole } from '@prisma/client'
 
 // ── Membership / access guard ─────────────────────────────────────────────────
-// Throws 403 when userId has no membership AND workspace is not PUBLIC.
-async function requireAccess(workspaceId: string, userId: string): Promise<void> {
+// Throws 403 when userId has no membership AND the workspace is not PUBLIC.
+// For PUBLIC workspaces the caller must still belong to the same institution;
+// cross-institution PUBLIC access is not permitted.
+async function requireAccess(
+  workspaceId: string,
+  userId: string,
+  callerInstitutionId: string | null,
+): Promise<{ isMember: boolean }> {
   const ws = await prisma.workspace.findUnique({
     where: { id: workspaceId },
-    select: { id: true, visibility: true },
+    select: { id: true, visibility: true, institutionId: true },
   })
   if (!ws) throw AppError.notFound('Workspace')
-  if (ws.visibility === 'PUBLIC') return
+
   const member = await prisma.workspaceMember.findUnique({
     where: { workspaceId_userId: { workspaceId, userId } },
   })
-  if (!member) throw AppError.forbidden('Not a member of this workspace')
+  if (member) return { isMember: true }
+
+  if (ws.visibility === 'PUBLIC') {
+    // PUBLIC access is scoped to the same institution
+    if (ws.institutionId && callerInstitutionId !== ws.institutionId) {
+      throw AppError.forbidden('Not a member of this workspace')
+    }
+    return { isMember: false }
+  }
+
+  throw AppError.forbidden('Not a member of this workspace')
 }
 
 export const workspaceService = {
@@ -40,9 +56,9 @@ export const workspaceService = {
     return workspace
   },
 
-  async get(id: string, callerId: string) {
-    // Finding 4: require membership (or PUBLIC visibility) before exposing workspace details
-    await requireAccess(id, callerId)
+  async get(id: string, callerId: string, callerInstitutionId: string | null) {
+    // Finding 4: require membership (or same-institution PUBLIC) before exposing workspace details
+    await requireAccess(id, callerId, callerInstitutionId)
     const ws = await prisma.workspace.findUnique({
       where: { id },
       include: {
@@ -132,9 +148,9 @@ export const workspaceService = {
     })
   },
 
-  async getMembers(workspaceId: string, callerId: string, opts?: { page?: number; limit?: number }) {
-    // Finding 4: require membership / PUBLIC access
-    await requireAccess(workspaceId, callerId)
+  async getMembers(workspaceId: string, callerId: string, callerInstitutionId: string | null, opts?: { page?: number; limit?: number }) {
+    // Finding 4: require membership / same-institution PUBLIC access
+    const { isMember } = await requireAccess(workspaceId, callerId, callerInstitutionId)
 
     const page = opts?.page ?? 1
     const limit = opts?.limit ?? 50
@@ -144,7 +160,8 @@ export const workspaceService = {
       prisma.workspaceMember.findMany({
         where: { workspaceId },
         skip, take: limit,
-        include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, department: true } } },
+        // Email is only exposed to actual members, not PUBLIC workspace visitors
+        include: { user: { select: { id: true, name: true, email: isMember, avatarUrl: true, department: true } } },
         orderBy: { joinedAt: 'asc' },
       }),
       prisma.workspaceMember.count({ where: { workspaceId } }),
@@ -152,9 +169,9 @@ export const workspaceService = {
     return { items, total, page, limit, pages: Math.ceil(total / limit) }
   },
 
-  async getDashboard(workspaceId: string, callerId: string) {
-    // Finding 4: require membership / PUBLIC access
-    await requireAccess(workspaceId, callerId)
+  async getDashboard(workspaceId: string, callerId: string, callerInstitutionId: string | null) {
+    // Finding 4: require membership / same-institution PUBLIC access
+    await requireAccess(workspaceId, callerId, callerInstitutionId)
 
     const [workspace, recentActivity, upcomingEvents, memberCount] = await Promise.all([
       prisma.workspace.findUnique({

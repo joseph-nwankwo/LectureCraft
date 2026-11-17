@@ -15,9 +15,11 @@ import { requireCentralEntitlement } from '../services/auth/central-entitlement'
 import { PRODUCT_ID } from '../config/product'
 import type { AuthPayload } from '../middleware/auth.middleware'
 
-const SSO_CODE_TTL_SECONDS = 60
-const SSO_PENDING_COOKIE   = 'lc_sso_pending'
-const SSO_BINDING_COOKIE   = 'lc_sso_binding'
+const SSO_CODE_TTL_SECONDS  = 60
+const SSO_STATE_TTL_SECONDS = 600          // 10 min — covers the round-trip through the portal
+const SSO_PENDING_COOKIE    = 'lc_sso_pending'
+const SSO_BINDING_COOKIE    = 'lc_sso_binding'
+const SSO_STATE_COOKIE      = 'lc_sso_state'
 
 const REFRESH_COOKIE = 'lc_refresh'
 const COOKIE_OPTS = {
@@ -248,6 +250,47 @@ export const authController = {
     res.json({ status: 'success', message: 'All sessions terminated' })
   }),
 
+  // ── SSO initiation — browser navigates here first, before the portal ────────
+  // Generates a cryptographically random state token, stores it in Redis, sets
+  // an HttpOnly SameSite=Lax cookie (Lax so the cookie survives the cross-site
+  // top-level navigation back from the portal), then redirects the browser to
+  // the portal launch URL carrying ?state=<state>. The state ties this browser
+  // session to exactly one portal launch, preventing login-CSRF.
+  ssoInitiate: asyncHandler(async (_req: Request, res: Response) => {
+    const portalLaunchUrl = env.PORTAL_LAUNCH_URL
+    if (!portalLaunchUrl) {
+      throw new AppError('SSO is not configured for this installation', 503)
+    }
+
+    const state = crypto.randomBytes(32).toString('hex')
+
+    let stored: string | null
+    try {
+      stored = await redis.set(`sso:state:${state}`, '1', 'EX', SSO_STATE_TTL_SECONDS, 'NX')
+    } catch (err) {
+      console.error('SSO state store unavailable (Redis):', (err as Error).message)
+      throw new AppError('Single sign-on is temporarily unavailable', 503)
+    }
+    if (stored !== 'OK') {
+      throw new AppError('Single sign-on is temporarily unavailable', 503)
+    }
+
+    // SameSite=Lax (not Strict) is required: the portal redirects BACK to this
+    // origin, which is a cross-site top-level navigation. Lax cookies ARE sent
+    // on such navigations; Strict cookies are not.
+    res.cookie(SSO_STATE_COOKIE, state, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge:   SSO_STATE_TTL_SECONDS * 1000,
+      path:     '/api/auth/sso',
+    })
+
+    const destination = new URL(portalLaunchUrl)
+    destination.searchParams.set('state', state)
+    res.redirect(302, destination.toString())
+  }),
+
   // ── SSO callback — called by portal launch redirect ───────────────────────
   // Validates a short-lived launch token issued by uamsatech.com, finds or
   // provisions the user in the craftsuite DB, issues a LectureSuite session,
@@ -256,6 +299,41 @@ export const authController = {
   ssoCallback: asyncHandler(async (req: Request, res: Response) => {
     const token = req.query.token as string | undefined
     if (!token) throw AppError.badRequest('Missing launch token')
+
+    // State-based login-CSRF protection: when PORTAL_LAUNCH_URL is configured
+    // (i.e. the ssoInitiate endpoint is in use), verify the round-trip state.
+    // The state must be in both the URL param AND the browser-bound cookie, and
+    // it must exist in Redis (proving it was issued by this server, single-use).
+    const stateParam  = req.query.state as string | undefined
+    const stateCookie = req.cookies?.[SSO_STATE_COOKIE] as string | undefined
+
+    if (env.PORTAL_LAUNCH_URL) {
+      // Initiate-based flow is active — state is required
+      if (!stateParam || !stateCookie) {
+        throw AppError.unauthorized('Missing SSO state — please start login from the application')
+      }
+      if (stateParam !== stateCookie) {
+        throw AppError.unauthorized('SSO state mismatch — possible login-CSRF attempt')
+      }
+      // Single-use: atomically retrieve and delete the state
+      let stateStored: string | null
+      try {
+        stateStored = await redis.getdel(`sso:state:${stateParam}`)
+      } catch (err) {
+        console.error('SSO state check unavailable (Redis):', (err as Error).message)
+        throw new AppError('Single sign-on is temporarily unavailable', 503)
+      }
+      if (!stateStored) {
+        throw AppError.unauthorized('SSO state is invalid or expired — please start login again')
+      }
+      // Clear the state cookie
+      res.clearCookie(SSO_STATE_COOKIE, {
+        httpOnly: true,
+        secure:   process.env.NODE_ENV === 'production',
+        sameSite: 'lax' as const,
+        path:     '/api/auth/sso',
+      })
+    }
 
     let payload: { sub?: unknown; email?: unknown; type?: unknown; target?: unknown; jti?: unknown; iss?: unknown; aud?: unknown; exp?: unknown }
     try {

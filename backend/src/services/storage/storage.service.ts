@@ -157,8 +157,16 @@ const SUBMISSION_MAGIC: Record<string, SubmissionMagicCheck[]> = {
 }
 
 export function validateSubmissionMagicBytes(buffer: Buffer, mimeType: string): boolean {
+  if (mimeType === 'text/plain') {
+    // text/plain has no standard magic bytes; validate that the content looks
+    // like text: no null bytes (which indicate binary content in disguise).
+    for (let i = 0; i < buffer.length; i++) {
+      if (buffer[i] === 0x00) return false
+    }
+    return true
+  }
   const checks = SUBMISSION_MAGIC[mimeType]
-  if (!checks) return mimeType === 'text/plain'               // accept text/plain without magic
+  if (!checks) return false
   return checks.every(({ offset, bytes }) =>
     bytes.every((byte, i) => buffer[offset + i] === byte)
   )

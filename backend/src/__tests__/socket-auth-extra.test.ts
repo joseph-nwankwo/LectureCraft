@@ -24,6 +24,7 @@ process.env.CENTRAL_ENTITLEMENT_SERVICE_SECRET = 'test-entitlement-service-secre
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 const mockConversationMember = jest.fn()
+const mockMessageFindUnique  = jest.fn()
 const mockMessageReact       = jest.fn()
 
 jest.mock('../config/database', () => ({
@@ -31,6 +32,7 @@ jest.mock('../config/database', () => ({
     conversationMember: { findUnique: mockConversationMember },
     workspaceMember:    { findUnique: jest.fn() },
     workspace:          { findUnique: jest.fn() },
+    message:            { findUnique: mockMessageFindUnique },
   },
 }))
 
@@ -120,6 +122,8 @@ describe('Finding B: message:react membership enforcement', () => {
     mockConversationMember
       .mockResolvedValueOnce({ conversationId: 'conv-1', userId: 'user-1' })
       .mockResolvedValueOnce({ conversationId: 'conv-1', userId: 'user-1' })
+    // message:react now also verifies the message belongs to the stated conversation
+    mockMessageFindUnique.mockResolvedValueOnce({ conversationId: 'conv-1' })
     mockMessageReact.mockResolvedValueOnce({ action: 'added' })
 
     const client = await connect(srv, makeToken())

@@ -136,13 +136,22 @@ export default function AssignmentSubmitPage() {
       <section className="rounded-lg border border-border bg-card p-5 shadow-card" aria-labelledby="submission-heading">
         <h2 id="submission-heading" className="mb-3 text-sm font-semibold text-foreground">Your Submission</h2>
 
-        {/* Existing file */}
-        {sub?.fileUrl && !file && (
+        {/* Existing file — download via authenticated endpoint, never via public fileUrl */}
+        {(sub?.fileKey || sub?.fileUrl) && !file && (
           <div className="flex items-center gap-2 mb-3 text-sm bg-muted/40 rounded-lg px-3 py-2">
             <FileText className="h-4 w-4 text-primary" />
             <span className="truncate text-foreground">{sub.fileName ?? 'Uploaded file'}</span>
+            {sub.id && (
+              <a
+                href={`/api/submissions/${sub.id}/file`}
+                download={sub.fileName ?? undefined}
+                className="ml-auto text-xs text-primary hover:underline shrink-0"
+              >
+                Download
+              </a>
+            )}
             {!isLocked && (
-              <button onClick={() => fileRef.current?.click()} className="ml-auto text-xs text-primary hover:underline shrink-0">
+              <button onClick={() => fileRef.current?.click()} className="ml-2 text-xs text-primary hover:underline shrink-0">
                 Replace
               </button>
             )}
@@ -186,7 +195,16 @@ export default function AssignmentSubmitPage() {
             {sub?.content ? (
               <p className="whitespace-pre-wrap text-foreground">{sub.content}</p>
             ) : (
-              <p>File submitted: {sub?.fileName ?? 'See uploaded file'}</p>
+              <p>
+                File submitted:{' '}
+                {sub?.id && (sub?.fileKey || sub?.fileUrl) ? (
+                  <a href={`/api/submissions/${sub.id}/file`} download={sub.fileName ?? undefined} className="text-primary hover:underline">
+                    {sub.fileName ?? 'Download file'}
+                  </a>
+                ) : (
+                  sub?.fileName ?? 'See uploaded file'
+                )}
+              </p>
             )}
           </div>
         )}
@@ -209,7 +227,7 @@ export default function AssignmentSubmitPage() {
             </button>
             <button
               onClick={() => void handleSubmit()}
-              disabled={saving || submitting || (!content && !file && !sub?.fileUrl)}
+              disabled={saving || submitting || (!content && !file && !sub?.fileKey && !sub?.fileUrl)}
               className="flex items-center gap-1.5 text-sm bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}

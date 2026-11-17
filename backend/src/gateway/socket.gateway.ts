@@ -124,6 +124,16 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
         return
       }
 
+      // Verify membership before processing — prevents non-members from sending
+      // messages into conversations they were never part of or were removed from.
+      const sendMember = await prisma.conversationMember.findUnique({
+        where: { conversationId_userId: { conversationId: data.conversationId, userId } },
+      }).catch(() => null)
+      if (!sendMember) {
+        socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
+        return
+      }
+
       try {
         const message = await messageService.send({
           conversationId: data.conversationId,
@@ -143,6 +153,23 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
 
     socket.on('message:edit', async ({ messageId, content }: { messageId: string; content: string }) => {
       try {
+        // Fetch message first to get the authoritative conversationId, then
+        // verify the caller is still a member of that conversation.
+        const msg = await prisma.message.findUnique({
+          where: { id: messageId },
+          select: { conversationId: true },
+        }).catch(() => null)
+        if (!msg) {
+          socket.emit('error', { code: 'NOT_FOUND', message: 'Message not found' })
+          return
+        }
+        const editMember = await prisma.conversationMember.findUnique({
+          where: { conversationId_userId: { conversationId: msg.conversationId, userId } },
+        }).catch(() => null)
+        if (!editMember) {
+          socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
+          return
+        }
         const message = await messageService.edit(messageId, userId, content)
         io.to(`conv:${message.conversationId}`).emit('message:edited', message)
       } catch (err: unknown) {
@@ -153,6 +180,23 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
 
     socket.on('message:delete', async ({ messageId, conversationId }: { messageId: string; conversationId: string }) => {
       try {
+        // Verify the message actually belongs to the stated conversation, then
+        // check the caller is a member before allowing the delete.
+        const msg = await prisma.message.findUnique({
+          where: { id: messageId },
+          select: { conversationId: true },
+        }).catch(() => null)
+        if (!msg || msg.conversationId !== conversationId) {
+          socket.emit('error', { code: 'NOT_FOUND', message: 'Message not found in this conversation' })
+          return
+        }
+        const delMember = await prisma.conversationMember.findUnique({
+          where: { conversationId_userId: { conversationId, userId } },
+        }).catch(() => null)
+        if (!delMember) {
+          socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
+          return
+        }
         await messageService.delete(messageId, userId)
         io.to(`conv:${conversationId}`).emit('message:deleted', { messageId, conversationId })
       } catch (err: unknown) {
@@ -168,6 +212,16 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
         })
         if (!member) {
           socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
+          return
+        }
+        // Verify the message belongs to the stated conversation — prevents
+        // reacting to messages from arbitrary other conversations.
+        const reactMsg = await prisma.message.findUnique({
+          where: { id: messageId },
+          select: { conversationId: true },
+        }).catch(() => null)
+        if (!reactMsg || reactMsg.conversationId !== conversationId) {
+          socket.emit('error', { code: 'NOT_FOUND', message: 'Message not found in this conversation' })
           return
         }
         const result = await messageService.react(messageId, userId, emoji)
@@ -296,4 +350,11 @@ export function emitToInstitution(io: SocketServer, institutionId: string, event
 
 export function emitToConversation(io: SocketServer, conversationId: string, event: string, data: unknown) {
   io.to(`conv:${conversationId}`).emit(event, data)
+}
+
+// Force all sockets belonging to a user to leave a conversation room and notify
+// them they were removed. Called when a member is explicitly removed via the API.
+export function ejectUserFromConversation(io: SocketServer, userId: string, conversationId: string) {
+  io.in(`user:${userId}`).socketsLeave(`conv:${conversationId}`)
+  io.to(`user:${userId}`).emit('conversation:removed', { conversationId })
 }
