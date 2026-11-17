@@ -83,8 +83,13 @@ export const reportService = {
 
   // ── Scheduled Reports ─────────────────────────────────────────────
   async listScheduled(userId: string, institutionId: string | null) {
+    // Finding 5: when institutionId is null the OR clause would match ALL reports
+    // with null institutionId — scope strictly to what this user created instead.
+    const where = institutionId
+      ? { OR: [{ createdBy: userId }, { institutionId }] }
+      : { createdBy: userId }
     return prisma.scheduledReport.findMany({
-      where: { OR: [{ createdBy: userId }, { institutionId }] },
+      where,
       include: { template: { select: { name: true } }, creator: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     })

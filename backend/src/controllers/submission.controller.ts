@@ -1,3 +1,5 @@
+import path from 'path'
+import fs from 'fs'
 import type { Request, Response } from 'express'
 import { asyncHandler } from '../utils/asyncHandler'
 import { AppError } from '../utils/errors'
@@ -68,5 +70,32 @@ export const submissionController = {
 
     const data = await submissionService.returnSubmission(submissionId, feedback)
     res.json({ status: 'success', data })
+  }),
+
+  // All authorized callers: securely download the submission file
+  downloadFile: asyncHandler(async (req: Request, res: Response) => {
+    const submissionId       = String(req.params.id)
+    const callerId           = req.user!.userId
+    const callerRole         = req.user!.role
+    const callerInstitutionId = req.user!.institutionId ?? null
+
+    const result = await submissionService.authorizeAndGetDownloadUrl(
+      submissionId, callerId, callerRole, callerInstitutionId,
+    )
+
+    if ('url' in result) {
+      // R2 presigned URL — redirect so the browser fetches directly from R2
+      return res.redirect(302, result.url)
+    }
+
+    // Legacy local file (dev fallback)
+    if ('localPath' in result) {
+      if (!fs.existsSync(result.localPath)) throw AppError.notFound('File not found on disk')
+      const fileName = result.fileName ?? path.basename(result.localPath)
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+      return res.sendFile(result.localPath)
+    }
+
+    throw AppError.internal('Unexpected download result')
   }),
 }

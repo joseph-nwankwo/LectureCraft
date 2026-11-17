@@ -2,6 +2,21 @@ import { prisma } from '../../config/database'
 import { AppError } from '../../utils/errors'
 import type { WorkspaceVisibility, WorkspaceMemberRole } from '@prisma/client'
 
+// ── Membership / access guard ─────────────────────────────────────────────────
+// Throws 403 when userId has no membership AND workspace is not PUBLIC.
+async function requireAccess(workspaceId: string, userId: string): Promise<void> {
+  const ws = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { id: true, visibility: true },
+  })
+  if (!ws) throw AppError.notFound('Workspace')
+  if (ws.visibility === 'PUBLIC') return
+  const member = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId } },
+  })
+  if (!member) throw AppError.forbidden('Not a member of this workspace')
+}
+
 export const workspaceService = {
   async create(data: {
     institutionId: string
@@ -25,7 +40,9 @@ export const workspaceService = {
     return workspace
   },
 
-  async get(id: string) {
+  async get(id: string, callerId: string) {
+    // Finding 4: require membership (or PUBLIC visibility) before exposing workspace details
+    await requireAccess(id, callerId)
     const ws = await prisma.workspace.findUnique({
       where: { id },
       include: {
@@ -81,6 +98,18 @@ export const workspaceService = {
 
   async addMember(workspaceId: string, actorId: string, targetUserId: string, role: WorkspaceMemberRole = 'MEMBER') {
     await requireAdmin(workspaceId, actorId)
+
+    // Finding 3: target user must belong to the same institution as the workspace
+    const [ws, target] = await Promise.all([
+      prisma.workspace.findUnique({ where: { id: workspaceId }, select: { institutionId: true } }),
+      prisma.user.findUnique({ where: { id: targetUserId }, select: { institutionId: true } }),
+    ])
+    if (!ws) throw AppError.notFound('Workspace')
+    if (!target) throw AppError.notFound('User')
+    if (ws.institutionId && target.institutionId !== ws.institutionId) {
+      throw AppError.forbidden('Cannot add a user from a different institution to this workspace')
+    }
+
     const existing = await prisma.workspaceMember.findUnique({
       where: { workspaceId_userId: { workspaceId, userId: targetUserId } },
     })
@@ -103,7 +132,10 @@ export const workspaceService = {
     })
   },
 
-  async getMembers(workspaceId: string, opts?: { page?: number; limit?: number }) {
+  async getMembers(workspaceId: string, callerId: string, opts?: { page?: number; limit?: number }) {
+    // Finding 4: require membership / PUBLIC access
+    await requireAccess(workspaceId, callerId)
+
     const page = opts?.page ?? 1
     const limit = opts?.limit ?? 50
     const skip = (page - 1) * limit
@@ -120,7 +152,10 @@ export const workspaceService = {
     return { items, total, page, limit, pages: Math.ceil(total / limit) }
   },
 
-  async getDashboard(workspaceId: string) {
+  async getDashboard(workspaceId: string, callerId: string) {
+    // Finding 4: require membership / PUBLIC access
+    await requireAccess(workspaceId, callerId)
+
     const [workspace, recentActivity, upcomingEvents, memberCount] = await Promise.all([
       prisma.workspace.findUnique({
         where: { id: workspaceId },

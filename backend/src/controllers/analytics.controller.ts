@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { asyncHandler } from '../utils/asyncHandler'
 import { AppError } from '../utils/errors'
 import { analyticsService, type DateRange } from '../services/analytics/analytics.service'
+import { prisma } from '../config/database'
 
 function parseRange(from?: string, to?: string): DateRange | undefined {
   if (!from && !to) return undefined
@@ -144,10 +145,29 @@ export const analyticsController = {
   bloomCoverage: asyncHandler(async (req: Request, res: Response) => {
     const { userId, institutionId, role } = req.user!
     const isAdmin = role === 'UNIVERSITY_ADMIN' || role === 'ADMINISTRATOR' || role === 'DEPARTMENT_HEAD' || role === 'DEAN'
+    const courseId = req.query.courseId as string | undefined
+
+    // Finding 5: authorize courseId before passing it to the analytics service.
+    // Any authenticated user could otherwise enumerate question counts for any course.
+    if (courseId) {
+      const course = await prisma.course.findUnique({ where: { id: courseId }, select: { id: true, institutionId: true } })
+      if (!course) throw AppError.notFound('Course not found')
+      // Admin must share the same institution; non-admin must be enrolled or own the course
+      if (isAdmin) {
+        if (course.institutionId !== institutionId) throw AppError.forbidden('Access denied')
+      } else {
+        const [owned, enrolled] = await Promise.all([
+          prisma.course.findFirst({ where: { id: courseId, createdBy: userId } }),
+          prisma.courseEnrollment.findFirst({ where: { courseId, studentId: userId, status: 'ACTIVE' } }),
+        ])
+        if (!owned && !enrolled) throw AppError.forbidden('Access denied')
+      }
+    }
+
     const data = await analyticsService.getBloomCoverage({
       userId: isAdmin ? undefined : userId,
       institutionId: institutionId ?? undefined,
-      courseId: req.query.courseId as string | undefined,
+      courseId,
     })
     res.json({ data })
   }),

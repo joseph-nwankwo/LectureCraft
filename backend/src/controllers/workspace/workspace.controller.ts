@@ -25,12 +25,12 @@ export const workspaceController = {
   }),
 
   get: asyncHandler(async (req: Request, res: Response) => {
-    const workspace = await workspaceService.get(req.params.id as string)
+    const workspace = await workspaceService.get(req.params.id as string, req.user!.userId)
     res.json({ success: true, data: workspace })
   }),
 
   getDashboard: asyncHandler(async (req: Request, res: Response) => {
-    const dashboard = await workspaceService.getDashboard(req.params.id as string)
+    const dashboard = await workspaceService.getDashboard(req.params.id as string, req.user!.userId)
     res.json({ success: true, data: dashboard })
   }),
 
@@ -51,7 +51,7 @@ export const workspaceController = {
   getMembers: asyncHandler(async (req: Request, res: Response) => {
     const page = Number(req.query.page) || 1
     const limit = Number(req.query.limit) || 50
-    const result = await workspaceService.getMembers(req.params.id as string, { page, limit })
+    const result = await workspaceService.getMembers(req.params.id as string, req.user!.userId, { page, limit })
     res.json({ success: true, ...result })
   }),
 

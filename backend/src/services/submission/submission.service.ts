@@ -1,7 +1,35 @@
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import { prisma } from '../../config/database'
 import { AppError } from '../../utils/errors'
+import {
+  isR2Configured,
+  uploadToR2,
+  deleteFromR2,
+  generateSignedDownloadUrl,
+  SUBMISSION_ALLOWED_MIME_TYPES,
+  validateSubmissionMagicBytes,
+} from '../storage/storage.service'
+
+const SUBMISSION_MAX_SIZE_BYTES  = 20 * 1024 * 1024   // 20 MB (enforced by multer, but double-check)
+const SUBMISSION_SIGNED_URL_TTL  = 10 * 60             // 10 minutes
+
+// ── Safe extension from MIME type (never from user-supplied filename) ──────────
+const MIME_TO_EXT: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.oasis.opendocument.text': 'odt',
+  'text/plain': 'txt',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'application/zip': 'zip',
+}
+
+function submissionExtFromMime(mimeType: string): string {
+  return MIME_TO_EXT[mimeType] ?? 'bin'
+}
 
 export const submissionService = {
   async getOrCreate(studentId: string, assessmentId: string) {
@@ -38,33 +66,94 @@ export const submissionService = {
       throw AppError.badRequest('Cannot edit a submitted submission')
     }
 
-    // Delete old file if replacing
-    if (file && submission.fileUrl) {
-      const oldPath = path.join(process.cwd(), submission.fileUrl)
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
-    }
-
     const updateData: Record<string, unknown> = {}
     if (content !== undefined) updateData.content = content
+
     if (file) {
-      const uploadDir = path.join(process.cwd(), 'uploads', 'submissions')
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
+      // 1. Validate MIME type against allowlist
+      if (!SUBMISSION_ALLOWED_MIME_TYPES.has(file.mimetype)) {
+        throw AppError.badRequest(`File type ${file.mimetype} is not allowed for submissions`)
+      }
 
-      const ext = path.extname(file.originalname)
-      const filename = `${submission.id}${ext}`
-      const filePath = path.join(uploadDir, filename)
-      fs.writeFileSync(filePath, file.buffer)
+      // 2. Validate magic bytes (file content matches declared MIME)
+      if (!validateSubmissionMagicBytes(file.buffer, file.mimetype)) {
+        throw AppError.badRequest('File content does not match the declared file type')
+      }
 
-      updateData.fileUrl  = `/uploads/submissions/${filename}`
-      updateData.fileName = file.originalname
+      // 3. Size check (multer enforces 20 MB, but double-check)
+      if (file.size > SUBMISSION_MAX_SIZE_BYTES) {
+        throw AppError.badRequest('File exceeds the 20 MB size limit')
+      }
+
+      const ext = submissionExtFromMime(file.mimetype)
+
+      // 4. Upload NEW file to R2 (or local dev fallback)
+      let newFileKey: string | null = null
+      let newFileUrl: string | null = null
+
+      if (isR2Configured()) {
+        // Generate a cryptographically random key — never derived from user input or submission ID
+        const randomKey = crypto.randomBytes(24).toString('hex')
+        newFileKey = `submissions/${randomKey}.${ext}`
+        // Upload new object FIRST; on failure the old file is untouched
+        await uploadToR2('submissions-private', file.buffer, file.mimetype, newFileKey)
+      } else {
+        // Local development fallback — not suitable for production
+        const uploadsDir = path.join(process.cwd(), 'uploads', 'submissions')
+        fs.mkdirSync(uploadsDir, { recursive: true })
+        const filename = `${crypto.randomBytes(16).toString('hex')}.${ext}`
+        const filePath = path.join(uploadsDir, filename)
+        fs.writeFileSync(filePath, file.buffer)
+        newFileUrl = `/uploads/submissions/${filename}`
+      }
+
+      // Store key/url in update but do NOT overwrite the existing one yet
+      if (newFileKey) {
+        updateData.fileKey  = newFileKey
+        updateData.fileUrl  = null           // clear legacy local path when R2 key is set
+      } else if (newFileUrl) {
+        updateData.fileUrl  = newFileUrl
+        updateData.fileKey  = null
+      }
+      updateData.fileName = file.originalname.slice(0, 255) // cap length; original name for display only
       updateData.fileSize = file.size
       updateData.fileType = file.mimetype
     }
 
-    return prisma.assignmentSubmission.update({
-      where: { id: submission.id },
-      data: updateData,
-    })
+    // 5. DB update SECOND — capture old file references before the update
+    const oldKey = submission.fileKey
+    const oldUrl = submission.fileUrl
+
+    let updated: Awaited<ReturnType<typeof prisma.assignmentSubmission.update>>
+    try {
+      updated = await prisma.assignmentSubmission.update({
+        where: { id: submission.id },
+        data: updateData,
+      })
+    } catch (err) {
+      // DB failed — clean up the newly uploaded R2 object so it doesn't become orphaned
+      if (file && updateData.fileKey && isR2Configured()) {
+        await deleteFromR2(updateData.fileKey as string).catch(() => null)
+      } else if (file && updateData.fileUrl && typeof updateData.fileUrl === 'string') {
+        const localPath = path.join(process.cwd(), updateData.fileUrl as string)
+        if (fs.existsSync(localPath)) fs.unlinkSync(localPath)
+      }
+      throw err
+    }
+
+    // 6. DB succeeded — now delete the OLD file (best-effort, never on failure path)
+    if (file) {
+      if (oldKey && isR2Configured()) {
+        await deleteFromR2(oldKey).catch(() => null)
+      } else if (oldUrl && oldUrl.startsWith('/uploads/submissions/')) {
+        const oldPath = path.join(process.cwd(), oldUrl)
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath) } catch { /* best-effort */ }
+        }
+      }
+    }
+
+    return updated
   },
 
   async submit(studentId: string, assessmentId: string) {
@@ -76,7 +165,7 @@ export const submissionService = {
     if (submission.status === 'SUBMITTED' || submission.status === 'GRADED') {
       throw AppError.badRequest('Already submitted')
     }
-    if (!submission.content && !submission.fileUrl) {
+    if (!submission.content && !submission.fileKey && !submission.fileUrl) {
       throw AppError.badRequest('Submission has no content or file')
     }
 
@@ -124,6 +213,58 @@ export const submissionService = {
         },
       },
     })
+  },
+
+  // ── Secure file download ──────────────────────────────────────────
+
+  async authorizeAndGetDownloadUrl(
+    submissionId: string,
+    callerId: string,
+    callerRole: string,
+    callerInstitutionId: string | null,
+  ): Promise<{ url: string; fileName: string | null } | { localPath: string; fileName: string | null }> {
+    const submission = await prisma.assignmentSubmission.findUnique({
+      where: { id: submissionId },
+      include: {
+        assessment: {
+          select: { createdBy: true, courseId: true, institutionId: true },
+        },
+      },
+    })
+    if (!submission) throw AppError.notFound('Submission not found')
+
+    // Authorization check:
+    // Students can only download their own submission
+    const isStudent = callerRole === 'STUDENT'
+    if (isStudent && submission.studentId !== callerId) {
+      throw AppError.forbidden('Access denied')
+    }
+
+    // Non-student staff must belong to the same institution as the assessment
+    if (!isStudent) {
+      const assessmentInstitutionId = submission.assessment.institutionId
+      if (assessmentInstitutionId && callerInstitutionId !== assessmentInstitutionId) {
+        throw AppError.forbidden('Access denied')
+      }
+    }
+
+    if (!submission.fileKey && !submission.fileUrl) {
+      throw AppError.notFound('This submission has no attached file')
+    }
+
+    if (submission.fileKey) {
+      if (!isR2Configured()) throw AppError.internal('Storage not configured')
+      const url = await generateSignedDownloadUrl(submission.fileKey, SUBMISSION_SIGNED_URL_TTL)
+      return { url, fileName: submission.fileName }
+    }
+
+    // Legacy local file (backward compat)
+    if (submission.fileUrl && submission.fileUrl.startsWith('/uploads/submissions/')) {
+      const localPath = path.join(process.cwd(), submission.fileUrl)
+      return { localPath, fileName: submission.fileName }
+    }
+
+    throw AppError.notFound('File not found')
   },
 
   // ── Lecturer endpoints ──────────────────────────────────────────

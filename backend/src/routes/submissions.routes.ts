@@ -16,6 +16,12 @@ router.get('/:assessmentId',         authenticate, authorize('STUDENT'), submiss
 router.post('/:assessmentId/draft',  authenticate, authorize('STUDENT'), upload.single('file'), submissionController.saveDraft)
 router.post('/:assessmentId/submit', authenticate, authorize('STUDENT'), submissionController.submit)
 
+// Secure file download — student sees own file; staff see files in their institution
+router.get('/:id/file', authenticate,
+  authorize('STUDENT', 'LECTURER', 'TEACHING_ASSISTANT', 'DEPARTMENT_HEAD', 'DEAN', 'UNIVERSITY_ADMIN', 'ADMINISTRATOR'),
+  submissionController.downloadFile,
+)
+
 // Lecturer / staff routes
 router.get('/assignment/:assessmentId/all', authenticate,
   authorize('LECTURER', 'TEACHING_ASSISTANT', 'DEPARTMENT_HEAD', 'DEAN', 'UNIVERSITY_ADMIN', 'ADMINISTRATOR'),

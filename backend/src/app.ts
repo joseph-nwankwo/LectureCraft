@@ -184,8 +184,12 @@ app.get('/health/ready', async (_req, res) => {
 // ── Prometheus Metrics ────────────────────────────────────────────────────────
 app.use('/metrics', metricsRoutes)
 
-// ── Static files (uploaded avatars, etc.) ─────────────────────────────────────
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
+// ── Static files (public uploads only — submissions are served via signed URL) ─
+// Never serve /uploads/submissions — those are private and must go through
+// GET /api/submissions/:id/file which checks authorization before redirecting
+// to a short-lived R2 presigned URL.
+app.use('/uploads/avatars',           express.static(path.join(process.cwd(), 'uploads', 'avatars')))
+app.use('/uploads/institution-logos', express.static(path.join(process.cwd(), 'uploads', 'institution-logos')))
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/context',      contextExtractRoutes)

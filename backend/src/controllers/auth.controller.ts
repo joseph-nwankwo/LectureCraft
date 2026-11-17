@@ -17,6 +17,7 @@ import type { AuthPayload } from '../middleware/auth.middleware'
 
 const SSO_CODE_TTL_SECONDS = 60
 const SSO_PENDING_COOKIE   = 'lc_sso_pending'
+const SSO_BINDING_COOKIE   = 'lc_sso_binding'
 
 const REFRESH_COOKIE = 'lc_refresh'
 const COOKIE_OPTS = {
@@ -338,10 +339,18 @@ export const authController = {
     // never in the redirect URL — so it does not appear in proxy access logs,
     // browser history, or Referer headers. POST /api/auth/sso/exchange reads the
     // cookie automatically; JavaScript cannot read or forward it.
-    const code = crypto.randomBytes(32).toString('hex')
+    const code    = crypto.randomBytes(32).toString('hex')
+    // Finding 6: generate a per-login binding nonce that ties this code to
+    // the browser tab that initiated the SSO flow. The nonce is delivered as
+    // a separate HttpOnly cookie and stored alongside the code in Redis.
+    // ssoExchange must present the matching binding cookie or the exchange fails,
+    // preventing a cross-site login-CSRF attack where an attacker tricks the
+    // browser into completing a code exchange for the attacker's own session.
+    const binding = crypto.randomBytes(32).toString('hex')
+    const redisPayload = JSON.stringify({ userId: user.id, binding })
     let codeStored: string | null
     try {
-      codeStored = await redis.set(`sso:code:${code}`, user.id, 'EX', SSO_CODE_TTL_SECONDS, 'NX')
+      codeStored = await redis.set(`sso:code:${code}`, redisPayload, 'EX', SSO_CODE_TTL_SECONDS, 'NX')
     } catch (err) {
       console.error('SSO code store unavailable (Redis):', (err as Error).message)
       throw new AppError('Single sign-on is temporarily unavailable', 503)
@@ -351,13 +360,15 @@ export const authController = {
       throw new AppError('Single sign-on is temporarily unavailable', 503)
     }
 
-    res.cookie(SSO_PENDING_COOKIE, code, {
+    const ssoCookieOpts = {
       httpOnly: true,
       secure:   process.env.NODE_ENV === 'production',
       sameSite: 'strict' as const,
       maxAge:   SSO_CODE_TTL_SECONDS * 1000,
       path:     '/api/auth/sso/exchange',
-    })
+    }
+    res.cookie(SSO_PENDING_COOKIE, code, ssoCookieOpts)
+    res.cookie(SSO_BINDING_COOKIE, binding, ssoCookieOpts)
     res.redirect(`${env.FRONTEND_URL}/auth/sso`)
   }),
 
@@ -365,27 +376,49 @@ export const authController = {
   // The auth code is read from an HttpOnly cookie set by ssoCallback, binding
   // the exchange to the browser session that received the redirect. The code
   // is never accepted from the request body to prevent interception replays.
+  // Finding 6: a second binding cookie ties this exchange to the exact login
+  // that set the pending cookie, preventing login-CSRF.
   ssoExchange: asyncHandler(async (req: Request, res: Response) => {
-    const code = req.cookies?.[SSO_PENDING_COOKIE] as string | undefined
+    const code    = req.cookies?.[SSO_PENDING_COOKIE] as string | undefined
+    const binding = req.cookies?.[SSO_BINDING_COOKIE] as string | undefined
     if (!code || typeof code !== 'string') throw AppError.badRequest('Missing authorization code')
+    if (!binding || typeof binding !== 'string') throw AppError.badRequest('Missing SSO binding')
 
-    // Clear the pending cookie immediately so it cannot be reused even on error.
-    res.clearCookie(SSO_PENDING_COOKIE, {
-      httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'strict' as const,
-      path:     '/api/auth/sso/exchange',
-    })
+    const clearSsoCookies = () => {
+      const opts = {
+        httpOnly: true,
+        secure:   process.env.NODE_ENV === 'production',
+        sameSite: 'strict' as const,
+        path:     '/api/auth/sso/exchange',
+      }
+      res.clearCookie(SSO_PENDING_COOKIE, opts)
+      res.clearCookie(SSO_BINDING_COOKIE, opts)
+    }
+
+    // Clear both pending cookies immediately so they cannot be reused even on error.
+    clearSsoCookies()
 
     // Atomically retrieve and delete the code (single-use).
-    let userId: string | null
+    let storedRaw: string | null
     try {
-      userId = await redis.getdel(`sso:code:${code}`)
+      storedRaw = await redis.getdel(`sso:code:${code}`)
     } catch (err) {
       console.error('SSO exchange store unavailable (Redis):', (err as Error).message)
       throw new AppError('Single sign-on is temporarily unavailable', 503)
     }
-    if (!userId) throw AppError.unauthorized('Authorization code is invalid or expired')
+    if (!storedRaw) throw AppError.unauthorized('Authorization code is invalid or expired')
+
+    // Parse the stored payload and verify the binding nonce (Finding 6).
+    let stored: { userId: string; binding: string }
+    try {
+      stored = JSON.parse(storedRaw) as { userId: string; binding: string }
+    } catch {
+      throw AppError.unauthorized('Authorization code is malformed')
+    }
+    if (!stored.binding || stored.binding !== binding) {
+      throw AppError.unauthorized('SSO binding mismatch — possible login-CSRF attempt')
+    }
+    const userId = stored.userId
 
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) throw AppError.unauthorized('User not found')

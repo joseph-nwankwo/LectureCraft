@@ -95,6 +95,11 @@ let redisStore: RedisStore
 function setupRedisStore() {
   redisStore = new Map()
 
+  // Reset before re-applying implementation so queued mockRejectedValueOnce
+  // from one test cannot bleed into the next test's real getdel calls.
+  redis.set.mockReset()
+  redis.getdel.mockReset()
+
   redis.set.mockImplementation((key: string, value: string, _ex: string, _ttl: number, nx: string) => {
     if (nx !== 'NX') return Promise.resolve('OK')
     if (redisStore.has(key)) return Promise.resolve(null)
@@ -239,9 +244,10 @@ describe('CVE-LS-003: POST /api/auth/sso/exchange', () => {
   })
 
   it('rejects an entirely fabricated code that was never stored in Redis', async () => {
+    // Both cookies present but code is not in Redis — must 401 (not 400)
     const res = await request()
       .post('/api/auth/sso/exchange')
-      .set('Cookie', `lc_sso_pending=${'a'.repeat(64)}`)
+      .set('Cookie', `lc_sso_pending=${'a'.repeat(64)}; lc_sso_binding=${'b'.repeat(64)}`)
     expect(res.status).toBe(401)
     expect(jwtService.signAccessToken).not.toHaveBeenCalled()
   })
@@ -253,9 +259,10 @@ describe('CVE-LS-003: POST /api/auth/sso/exchange', () => {
 
   it('fails closed when Redis getdel throws', async () => {
     redis.getdel.mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:6379'))
+    // Both cookies present so the request reaches Redis before failing
     const res = await request()
       .post('/api/auth/sso/exchange')
-      .set('Cookie', `lc_sso_pending=${'a'.repeat(64)}`)
+      .set('Cookie', `lc_sso_pending=${'a'.repeat(64)}; lc_sso_binding=${'b'.repeat(64)}`)
     expect(res.status).toBe(503)
     expect(res.body.message).not.toMatch(/ECONNREFUSED|6379/)
     expect(jwtService.signAccessToken).not.toHaveBeenCalled()

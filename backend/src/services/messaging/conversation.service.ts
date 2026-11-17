@@ -2,8 +2,26 @@ import { prisma } from '../../config/database'
 import { AppError } from '../../utils/errors'
 import type { ConversationType } from '@prisma/client'
 
+// ── Institution membership guard ──────────────────────────────────────────────
+// Verifies that every supplied userId belongs to the given institution.
+// Throws 403 on the first cross-institution user found.
+async function assertSameInstitution(institutionId: string, userIds: string[]): Promise<void> {
+  if (userIds.length === 0) return
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, institutionId: true },
+  })
+  const outsiders = users.filter((u) => u.institutionId !== institutionId)
+  if (outsiders.length > 0) {
+    throw AppError.forbidden('All conversation members must belong to the same institution')
+  }
+}
+
 export const conversationService = {
   async getOrCreateDirect(institutionId: string, userId: string, targetUserId: string) {
+    // Finding 3: verify target user belongs to the same institution
+    await assertSameInstitution(institutionId, [targetUserId])
+
     const existing = await prisma.conversation.findFirst({
       where: {
         institutionId,
@@ -31,6 +49,9 @@ export const conversationService = {
     name: string; description?: string; memberIds: string[]
     workspaceId?: string; type?: ConversationType
   }) {
+    // Finding 3: verify all invited members belong to the same institution
+    await assertSameInstitution(institutionId, data.memberIds)
+
     const memberIds = [...new Set([creatorId, ...data.memberIds])]
     return prisma.conversation.create({
       data: {
@@ -118,6 +139,11 @@ export const conversationService = {
     })
     if (!conv) throw AppError.notFound('Conversation')
     if (conv.type === 'DIRECT') throw AppError.badRequest('Cannot add members to a direct conversation')
+
+    // Finding 3: verify every added user belongs to the conversation's institution
+    if (conv.institutionId) {
+      await assertSameInstitution(conv.institutionId, userIds)
+    }
 
     const existing = await prisma.conversationMember.findMany({ where: { conversationId } })
     const existingIds = new Set(existing.map((m) => m.userId))

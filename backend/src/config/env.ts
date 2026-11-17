@@ -120,6 +120,20 @@ export const envSchema = baseEnvSchema.superRefine((cfg, ctx) => {
       message: 'CENTRAL_ENTITLEMENT_URL must use https in production',
     })
   }
+  // R2 endpoint is required in production when storage credentials are set.
+  // Without it the S3 SDK silently targets AWS S3 rather than Cloudflare R2.
+  if (
+    cfg.NODE_ENV === 'production' &&
+    (cfg.AWS_ACCESS_KEY_ID || cfg.AWS_SECRET_ACCESS_KEY || cfg.AWS_S3_BUCKET)
+  ) {
+    if (!cfg.AWS_S3_ENDPOINT) {
+      ctx.addIssue({
+        code:    z.ZodIssueCode.custom,
+        path:    ['AWS_S3_ENDPOINT'],
+        message: 'AWS_S3_ENDPOINT is required in production — set to your Cloudflare R2 account endpoint (https://<account-id>.r2.cloudflarestorage.com)',
+      })
+    }
+  }
 })
 
 const parsed = envSchema.safeParse(process.env)

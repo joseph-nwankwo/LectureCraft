@@ -372,6 +372,16 @@ export const analyticsService = {
 
   // ── Assessment analytics ──────────────────────────────────────────
   async getAssessmentStats(opts: { userId?: string; institutionId?: string; courseId?: string }) {
+    // Finding 5: fail-closed — never issue an unscoped global query
+    if (!opts.userId && !opts.institutionId && !opts.courseId) {
+      return {
+        questions:   { total: 0, byType: [], byBloom: [], byDifficulty: [], byModeration: [] },
+        assessments: { total: 0, byType: [], byStatus: [] },
+        rubrics: 0,
+        outcomes: 0,
+      }
+    }
+
     const qWhere: Record<string, unknown> = {}
     const aWhere: Record<string, unknown> = {}
     if (opts.userId) { qWhere.createdBy = opts.userId; aWhere.createdBy = opts.userId }
