@@ -275,6 +275,11 @@ process.on('unhandledRejection', (reason) => {
 // ── Start Server ──────────────────────────────────────────────────────────────
 async function bootstrap() {
   try {
+    // Fail fast if production storage is misconfigured — uploads would silently
+    // fall back to ephemeral local disk and be lost on the next container restart.
+    const { requireR2InProduction } = await import('./services/storage/storage.service')
+    requireR2InProduction()
+
     await prisma.$connect()
     logger.info('Database connected')
 

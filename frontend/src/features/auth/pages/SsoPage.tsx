@@ -1,28 +1,19 @@
 import { useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { ROUTES } from '@/constants/routes'
 import { apiClient } from '@/lib/api/client'
 
 export default function SsoPage() {
-  const [params]        = useSearchParams()
   const navigate        = useNavigate()
   const { refreshUser } = useAuth()
 
   useEffect(() => {
-    const code = params.get('code')
-
-    if (!code) {
-      navigate(ROUTES.SIGN_IN, { replace: true })
-      return
-    }
-
-    // Remove the code from the URL immediately — it is single-use and must not
-    // be bookmarked, shared, or replayed via browser history.
-    window.history.replaceState({}, '', ROUTES.AUTH_SSO)
-
+    // The authorization code is delivered as an HttpOnly cookie by the backend
+    // redirect — it never appears in the URL. We simply POST to exchange; the
+    // browser sends the cookie automatically via the withCredentials setting.
     apiClient
-      .post<{ tokens: { accessToken: string } }>('/auth/sso/exchange', { code })
+      .post<{ tokens: { accessToken: string } }>('/auth/sso/exchange', {})
       .then(({ data }) => {
         // Only the short-lived access token is stored in localStorage.
         // The refresh token is set as an HttpOnly cookie by the backend.

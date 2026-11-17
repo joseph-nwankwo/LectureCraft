@@ -11,9 +11,12 @@ import { prisma } from '../config/database'
 import { redis } from '../config/redis'
 import { env } from '../config/env'
 import { uploadToR2, deleteFromR2, isR2Configured, validateImageMagicBytes, mimeToExt } from '../services/storage/storage.service'
+import { requireCentralEntitlement } from '../services/auth/central-entitlement'
+import { PRODUCT_ID } from '../config/product'
 import type { AuthPayload } from '../middleware/auth.middleware'
 
 const SSO_CODE_TTL_SECONDS = 60
+const SSO_PENDING_COOKIE   = 'lc_sso_pending'
 
 const REFRESH_COOKIE = 'lc_refresh'
 const COOKIE_OPTS = {
@@ -138,27 +141,41 @@ export const authController = {
     const userId = req.user!.userId
     const existing = await prisma.user.findUnique({ where: { id: userId }, select: { avatarUrl: true } })
 
+    // Safe upload ordering: upload NEW → update DB → delete OLD.
+    // If the DB update fails, the new upload is cleaned up. The old file is only
+    // removed after a confirmed DB update so the reference is never orphaned.
     let avatarUrl: string
+    let newR2Url: string | null = null
+
     if (isR2Configured()) {
-      // Delete old R2 object when present
-      if (existing?.avatarUrl && !existing.avatarUrl.startsWith('/uploads/')) {
-        await deleteFromR2(existing.avatarUrl).catch(() => null)
-      }
-      avatarUrl = await uploadToR2('avatars', buffer, mimetype)
+      newR2Url = await uploadToR2('avatars', buffer, mimetype)
+      avatarUrl = newR2Url
     } else {
       // Local-disk fallback — not suitable for production (ephemeral filesystem)
       const uploadsDir = path.join(process.cwd(), 'uploads', 'avatars')
       fs.mkdirSync(uploadsDir, { recursive: true })
-      if (existing?.avatarUrl?.startsWith('/uploads/avatars/')) {
-        const oldPath = path.join(process.cwd(), existing.avatarUrl)
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
-      }
       const filename = `${userId}.${mimeToExt(mimetype)}`
       fs.writeFileSync(path.join(uploadsDir, filename), buffer)
       avatarUrl = `/uploads/avatars/${filename}`
     }
 
-    const user = await prisma.user.update({ where: { id: userId }, data: { avatarUrl } })
+    let user: Awaited<ReturnType<typeof prisma.user.update>>
+    try {
+      user = await prisma.user.update({ where: { id: userId }, data: { avatarUrl } })
+    } catch (err) {
+      if (newR2Url) await deleteFromR2(newR2Url).catch(() => null)
+      throw err
+    }
+
+    // DB succeeded — clean up old object (best-effort)
+    const oldUrl = existing?.avatarUrl
+    if (newR2Url && oldUrl && !oldUrl.startsWith('/uploads/')) {
+      await deleteFromR2(oldUrl).catch(() => null)
+    } else if (!newR2Url && oldUrl?.startsWith('/uploads/avatars/')) {
+      const oldPath = path.join(process.cwd(), oldUrl)
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
+    }
+
     res.json({ status: 'success', avatarUrl: user.avatarUrl })
   }),
 
@@ -174,24 +191,34 @@ export const authController = {
     const existing = await prisma.user.findUnique({ where: { id: userId }, select: { personalInstitutionLogoUrl: true } })
 
     let logoUrl: string
+    let newR2LogoUrl: string | null = null
+
     if (isR2Configured()) {
-      if (existing?.personalInstitutionLogoUrl && !existing.personalInstitutionLogoUrl.startsWith('/uploads/')) {
-        await deleteFromR2(existing.personalInstitutionLogoUrl).catch(() => null)
-      }
-      logoUrl = await uploadToR2('institution-logos', buffer, mimetype)
+      newR2LogoUrl = await uploadToR2('institution-logos', buffer, mimetype)
+      logoUrl = newR2LogoUrl
     } else {
       const uploadsDir = path.join(process.cwd(), 'uploads', 'institution-logos')
       fs.mkdirSync(uploadsDir, { recursive: true })
-      if (existing?.personalInstitutionLogoUrl?.startsWith('/uploads/institution-logos/')) {
-        const oldPath = path.join(process.cwd(), existing.personalInstitutionLogoUrl)
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
-      }
       const filename = `${userId}.${mimeToExt(mimetype)}`
       fs.writeFileSync(path.join(uploadsDir, filename), buffer)
       logoUrl = `/uploads/institution-logos/${filename}`
     }
 
-    await prisma.user.update({ where: { id: userId }, data: { personalInstitutionLogoUrl: logoUrl } })
+    try {
+      await prisma.user.update({ where: { id: userId }, data: { personalInstitutionLogoUrl: logoUrl } })
+    } catch (err) {
+      if (newR2LogoUrl) await deleteFromR2(newR2LogoUrl).catch(() => null)
+      throw err
+    }
+
+    const oldLogoUrl = existing?.personalInstitutionLogoUrl
+    if (newR2LogoUrl && oldLogoUrl && !oldLogoUrl.startsWith('/uploads/')) {
+      await deleteFromR2(oldLogoUrl).catch(() => null)
+    } else if (!newR2LogoUrl && oldLogoUrl?.startsWith('/uploads/institution-logos/')) {
+      const oldPath = path.join(process.cwd(), oldLogoUrl)
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
+    }
+
     res.json({ status: 'success', logoUrl })
   }),
 
@@ -307,9 +334,10 @@ export const authController = {
     })
 
     // Issue a short-lived (60 s) single-use authorization code stored in Redis.
-    // The code is exchanged for tokens by POST /api/auth/sso/exchange — keeping
-    // both the access token and the refresh token out of the redirect URL and
-    // therefore out of server access logs and browser history.
+    // The code is delivered via an HttpOnly cookie on the redirect response —
+    // never in the redirect URL — so it does not appear in proxy access logs,
+    // browser history, or Referer headers. POST /api/auth/sso/exchange reads the
+    // cookie automatically; JavaScript cannot read or forward it.
     const code = crypto.randomBytes(32).toString('hex')
     let codeStored: string | null
     try {
@@ -323,13 +351,31 @@ export const authController = {
       throw new AppError('Single sign-on is temporarily unavailable', 503)
     }
 
-    res.redirect(`${env.FRONTEND_URL}/auth/sso?code=${encodeURIComponent(code)}`)
+    res.cookie(SSO_PENDING_COOKIE, code, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      maxAge:   SSO_CODE_TTL_SECONDS * 1000,
+      path:     '/api/auth/sso/exchange',
+    })
+    res.redirect(`${env.FRONTEND_URL}/auth/sso`)
   }),
 
   // ── SSO exchange — called by frontend to swap the auth code for tokens ───
+  // The auth code is read from an HttpOnly cookie set by ssoCallback, binding
+  // the exchange to the browser session that received the redirect. The code
+  // is never accepted from the request body to prevent interception replays.
   ssoExchange: asyncHandler(async (req: Request, res: Response) => {
-    const { code } = req.body as { code?: string }
+    const code = req.cookies?.[SSO_PENDING_COOKIE] as string | undefined
     if (!code || typeof code !== 'string') throw AppError.badRequest('Missing authorization code')
+
+    // Clear the pending cookie immediately so it cannot be reused even on error.
+    res.clearCookie(SSO_PENDING_COOKIE, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === 'production',
+      sameSite: 'strict' as const,
+      path:     '/api/auth/sso/exchange',
+    })
 
     // Atomically retrieve and delete the code (single-use).
     let userId: string | null
@@ -344,8 +390,12 @@ export const authController = {
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) throw AppError.unauthorized('User not found')
 
+    // Verify the user still holds an active entitlement from the portal before
+    // issuing any session credential. Consistent with the standard login path.
+    await requireCentralEntitlement(PRODUCT_ID, user.email)
+
     const productRole = await prisma.userProductRole.findUnique({
-      where: { userId_product: { userId: user.id, product: 'lecturesuite' } },
+      where: { userId_product: { userId: user.id, product: PRODUCT_ID } },
     })
 
     const authPayload: AuthPayload = {

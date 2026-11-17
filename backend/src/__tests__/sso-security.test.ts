@@ -18,6 +18,7 @@ import { randomUUID, createHmac } from 'crypto'
 import type { Request, Response, NextFunction } from 'express'
 import supertest from 'supertest'
 import express from 'express'
+import cookieParser from 'cookie-parser'
 
 // ── Product constants ─────────────────────────────────────────────────────────
 const PRODUCT       = 'lecturesuite'
@@ -63,6 +64,10 @@ jest.mock('../config/redis', () => ({ redis: { set: jest.fn(), getdel: jest.fn()
 jest.mock('../services/auth/jwt.service', () => ({
   signAccessToken:    jest.fn(),
   createRefreshToken: jest.fn(),
+}))
+
+jest.mock('../services/auth/central-entitlement', () => ({
+  requireCentralEntitlement: jest.fn().mockResolvedValue(new Date(Date.now() + 30 * 86400000)),
 }))
 
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -127,6 +132,7 @@ function buildLaunchToken(overrides: Record<string, unknown> = {}, secret = CRAF
 function buildApp(): express.Application {
   const app = express()
   app.use(express.json())
+  app.use(cookieParser())
   app.get('/api/auth/sso', authController.ssoCallback)
   app.get('/api/protected', authenticate, (_req, res) => { res.json({ ok: true }) })
   app.use((err: { statusCode?: number; message?: string }, _req: Request, res: Response, _next: NextFunction) => {
@@ -140,13 +146,18 @@ const sso = (token: string) => supertest(buildApp()).get(`/api/auth/sso?token=${
 // ── P0-01: launch-token verification ──────────────────────────────────────────
 
 describe(`P0-01: SSO launch token verification (${PRODUCT})`, () => {
-  it('accepts a valid launch token and redirects with a short-lived authorization code (no tokens in URL)', async () => {
+  it('accepts a valid launch token and redirects to /auth/sso — code bound to HttpOnly cookie, not URL', async () => {
     const res = await sso(buildLaunchToken())
     expect(res.status).toBe(302)
-    // Must redirect with ?code= only — never with ?at= or ?rt= (CVE-LS-003)
-    expect(res.headers.location).toMatch(new RegExp(`^${FRONTEND_URL}/auth/sso\\?code=`))
+    // Code is in a cookie — NEVER in the URL (CVE-LS-003 P0 fix)
+    expect(res.headers.location).toBe(`${FRONTEND_URL}/auth/sso`)
+    expect(res.headers.location).not.toContain('code=')
     expect(res.headers.location).not.toContain('at=')
     expect(res.headers.location).not.toContain('rt=')
+    // lc_sso_pending cookie must be set as HttpOnly
+    const cookies = ([] as string[]).concat(res.headers['set-cookie'] ?? [])
+    expect(cookies.some(c => c.startsWith('lc_sso_pending='))).toBe(true)
+    expect(cookies.some(c => c.toLowerCase().includes('httponly'))).toBe(true)
     // signAccessToken is NOT called here — it happens in POST /sso/exchange
     expect(jwtService.signAccessToken).not.toHaveBeenCalled()
   })

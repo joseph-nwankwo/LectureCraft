@@ -38,9 +38,22 @@ export const analyticsController = {
   }),
 
   // GET /api/analytics/lecturer/:userId
+  // Callers may only view their own dashboard unless they hold an admin role.
   lecturerDashboard: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, role, institutionId } = req.user!
+    const targetId = req.params.userId as string
+    const isAdmin = role === 'UNIVERSITY_ADMIN' || role === 'ADMINISTRATOR' || role === 'DEPARTMENT_HEAD' || role === 'DEAN'
+
+    if (!isAdmin && targetId !== userId) throw AppError.forbidden('Access denied')
+    // Institution-scoped admins may only view lecturers within their institution
+    if (isAdmin && institutionId) {
+      const { prisma } = await import('../config/database')
+      const target = await prisma.user.findFirst({ where: { id: targetId, institutionId } })
+      if (!target) throw AppError.forbidden('Access denied')
+    }
+
     const range = parseRange(req.query.from as string, req.query.to as string)
-    const data = await analyticsService.getLecturerDashboard(req.params.userId as string, range)
+    const data = await analyticsService.getLecturerDashboard(targetId, range)
     res.json({ data })
   }),
 
@@ -114,10 +127,16 @@ export const analyticsController = {
   }),
 
   // GET /api/analytics/approvals
+  // Admins see institution-wide stats; lecturers see only their own documents.
   approvalStats: asyncHandler(async (req: Request, res: Response) => {
-    const { institutionId } = req.user!
+    const { userId, role, institutionId } = req.user!
     const range = parseRange(req.query.from as string, req.query.to as string)
-    const data = await analyticsService.getApprovalStats({ institutionId: institutionId ?? undefined, range })
+    const isAdmin = role === 'UNIVERSITY_ADMIN' || role === 'ADMINISTRATOR'
+    const data = await analyticsService.getApprovalStats({
+      institutionId: isAdmin ? (institutionId ?? undefined) : undefined,
+      userId:        isAdmin ? undefined : userId,
+      range,
+    })
     res.json({ data })
   }),
 
@@ -143,12 +162,21 @@ export const analyticsController = {
   }),
 
   // POST /api/analytics/events
+  // Identity fields are sourced from the verified JWT — never from the request
+  // body — to prevent clients from logging events under other users' identities.
   trackEvent: asyncHandler(async (req: Request, res: Response) => {
     const { userId, institutionId } = req.user!
+    const { eventType, entityType, entityId, courseId, metadata } = req.body as {
+      eventType: string
+      entityType?: string
+      entityId?: string
+      courseId?: string
+      metadata?: Record<string, unknown>
+    }
     await analyticsService.trackEvent({
+      eventType, entityType, entityId, courseId, metadata,
       userId,
       institutionId: institutionId ?? undefined,
-      ...req.body,
     })
     res.status(201).json({ ok: true })
   }),

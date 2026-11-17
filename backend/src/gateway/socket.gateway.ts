@@ -163,6 +163,13 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
 
     socket.on('message:react', async ({ messageId, emoji, conversationId }: { messageId: string; emoji: string; conversationId: string }) => {
       try {
+        const member = await prisma.conversationMember.findUnique({
+          where: { conversationId_userId: { conversationId, userId } },
+        })
+        if (!member) {
+          socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
+          return
+        }
         const result = await messageService.react(messageId, userId, emoji)
         io.to(`conv:${conversationId}`).emit('message:reaction', { messageId, userId, emoji, action: result.action })
       } catch {
@@ -186,13 +193,20 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
     })
 
     // ── Typing indicators ──────────────────────────────────────────
-    socket.on('typing:start', ({ conversationId }: { conversationId: string }) => {
+    // Membership is verified before broadcasting to prevent spam/spoofing
+    // in conversations the user does not belong to.
+    socket.on('typing:start', async ({ conversationId }: { conversationId: string }) => {
+      const member = await prisma.conversationMember.findUnique({
+        where: { conversationId_userId: { conversationId, userId } },
+      }).catch(() => null)
+      if (!member) return
+
       socket.to(`conv:${conversationId}`).emit('typing:start', { conversationId, userId })
 
       if (!typingTimers.has(conversationId)) typingTimers.set(conversationId, new Map())
       const convTimers = typingTimers.get(conversationId)!
-      const existing = convTimers.get(userId)
-      if (existing) clearTimeout(existing)
+      const existingTimer = convTimers.get(userId)
+      if (existingTimer) clearTimeout(existingTimer)
 
       convTimers.set(userId, setTimeout(() => {
         io.to(`conv:${conversationId}`).emit('typing:stop', { conversationId, userId })
@@ -200,7 +214,12 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
       }, 5000))
     })
 
-    socket.on('typing:stop', ({ conversationId }: { conversationId: string }) => {
+    socket.on('typing:stop', async ({ conversationId }: { conversationId: string }) => {
+      const member = await prisma.conversationMember.findUnique({
+        where: { conversationId_userId: { conversationId, userId } },
+      }).catch(() => null)
+      if (!member) return
+
       const convTimers = typingTimers.get(conversationId)
       if (convTimers) {
         const t = convTimers.get(userId)
@@ -258,8 +277,10 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
     })
   })
 
-  // Stale presence sweep every 2 minutes
-  setInterval(() => presenceService.sweepStale().catch(() => null), 2 * 60 * 1000)
+  // Stale presence sweep every 2 minutes.
+  // .unref() prevents this timer from keeping the Node.js event loop alive in
+  // test environments, eliminating the "worker process failed to exit" warning.
+  setInterval(() => presenceService.sweepStale().catch(() => null), 2 * 60 * 1000).unref()
 
   return io
 }

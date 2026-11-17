@@ -288,6 +288,13 @@ export const analyticsService = {
 
   // ── AI usage analytics ────────────────────────────────────────────
   async getAIUsageStats(opts: { userId?: string; institutionId?: string; range?: DateRange }) {
+    // Fail closed: refuse to issue a cross-tenant unscoped query.
+    if (!opts.userId && !opts.institutionId) {
+      return {
+        aggregate: { totalGenerations: 0, tokensInput: 0, tokensOutput: 0, totalTokens: 0, costUsd: 0, avgCostPerGeneration: 0 },
+        byProvider: [], byModule: [], timeSeries: [], costSeries: [],
+      }
+    }
     const r = opts.range ?? last30Days()
     const userWhere = opts.userId
       ? { userId: opts.userId }
@@ -408,6 +415,9 @@ export const analyticsService = {
 
   // ── Document analytics ────────────────────────────────────────────
   async getDocumentStats(opts: { userId?: string; institutionId?: string; range?: DateRange }) {
+    if (!opts.userId && !opts.institutionId) {
+      return { total: 0, createdThisPeriod: 0, byType: [], byStatus: [], approvalStats: [], timeSeries: [] }
+    }
     const r = opts.range ?? last30Days()
     const where: Record<string, unknown> = { isTrashed: false }
     if (opts.userId) where.userId = opts.userId
@@ -520,6 +530,10 @@ export const analyticsService = {
 
   // ── Bloom's taxonomy coverage analysis ───────────────────────────
   async getBloomCoverage(opts: { userId?: string; institutionId?: string; courseId?: string }) {
+    if (!opts.userId && !opts.institutionId && !opts.courseId) {
+      const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYSE', 'EVALUATE', 'CREATE']
+      return { distribution: [], total: 0, missingLevels: levels, coverageScore: 0 }
+    }
     const where: Record<string, unknown> = {}
     if (opts.userId) where.createdBy = opts.userId
     if (opts.institutionId) where.institutionId = opts.institutionId

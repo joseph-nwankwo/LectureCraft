@@ -14,6 +14,21 @@ export function isR2Configured(): boolean {
   )
 }
 
+/**
+ * Throws at startup if running in production without a fully configured R2
+ * bucket. Upload handlers fall back to local disk in development; that path
+ * is never safe for production (ephemeral container filesystem).
+ */
+export function requireR2InProduction(): void {
+  if (env.NODE_ENV === 'production' && !isR2Configured()) {
+    throw new Error(
+      'R2 storage is not configured. ' +
+      'Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET, and AWS_S3_PUBLIC_URL ' +
+      'before starting the production server.',
+    )
+  }
+}
+
 // ── MIME → extension (from MIME type, not user-supplied filename) ─────────────
 
 const MIME_TO_EXT: Record<string, string> = {
