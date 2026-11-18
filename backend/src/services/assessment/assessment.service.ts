@@ -46,7 +46,8 @@ export const assessmentService = {
     const { page = 1, limit = 20, search, ...rest } = opts
     const skip = (page - 1) * limit
     const where: Record<string, unknown> = {
-      OR: [{ createdBy: userId }, { institutionId, status: 'PUBLISHED' }],
+      institutionId,
+      OR: [{ createdBy: userId }, { status: 'PUBLISHED' }],
     }
     if (rest.type) where.type = rest.type
     if (rest.status) where.status = rest.status
@@ -62,7 +63,7 @@ export const assessmentService = {
 
   async get(id: string, userId: string, institutionId: string | null) {
     const a = await prisma.assessment.findFirst({
-      where: { id, OR: [{ createdBy: userId }, { institutionId, status: 'PUBLISHED' }] },
+      where: { id, institutionId, OR: [{ createdBy: userId }, { status: 'PUBLISHED' }] },
       include: {
         creator: { select: { id: true, name: true } },
         course: { select: { id: true, code: true, title: true } },
