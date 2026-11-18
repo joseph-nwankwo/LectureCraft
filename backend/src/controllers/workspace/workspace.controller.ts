@@ -91,6 +91,12 @@ export const workspaceController = {
     })
 
     const io = getGatewayIo()
+    if (!io) {
+      // Socket server not yet running (possible during startup or tests).
+      // DB membership records are already removed above (fail-closed for reconnects),
+      // but active socket connections cannot be ejected without the io instance.
+      console.warn(`[workspace:remove] io unavailable — socket ejection skipped for user ${targetUserId} from workspace ${workspaceId}`)
+    }
     if (io) {
       const wsConvs = await prisma.conversation.findMany({
         where: { workspaceId },

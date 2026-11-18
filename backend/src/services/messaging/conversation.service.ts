@@ -113,6 +113,10 @@ export const conversationService = {
   },
 
   async markRead(conversationId: string, userId: string) {
+    const member = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    })
+    if (!member) throw AppError.forbidden('Not a member of this conversation')
     return prisma.conversationMember.update({
       where: { conversationId_userId: { conversationId, userId } },
       data: { lastReadAt: new Date() },
@@ -120,6 +124,10 @@ export const conversationService = {
   },
 
   async muteConversation(conversationId: string, userId: string, muted: boolean) {
+    const member = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    })
+    if (!member) throw AppError.forbidden('Not a member of this conversation')
     return prisma.conversationMember.update({
       where: { conversationId_userId: { conversationId, userId } },
       data: { muted },
@@ -127,6 +135,10 @@ export const conversationService = {
   },
 
   async archiveConversation(conversationId: string, userId: string, archived: boolean) {
+    const member = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    })
+    if (!member) throw AppError.forbidden('Not a member of this conversation')
     return prisma.conversationMember.update({
       where: { conversationId_userId: { conversationId, userId } },
       data: { archived },

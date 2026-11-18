@@ -9,6 +9,7 @@ import {
 import { coursesApi, type Course, type CourseDocument, type CourseAssessment, type Announcement, type ClassSession, type Poll, type ClassAssignment, type AssignmentSubmission, type AttendanceRecord, type DiscussionThread, type DiscussionReply } from '@/lib/api/courses.api'
 import { documentsApi, type Document } from '@/lib/api/documents.api'
 import { assessmentApi, type Assessment } from '@/lib/api/assessment.api'
+import { submissionApi, type Submission } from '@/lib/api/student.api'
 import { ROUTES } from '@/constants/routes'
 import { cn } from '@/lib/utils'
 
@@ -257,6 +258,14 @@ export default function LecturerCourseDetailPage() {
   const [gradingMap, setGradingMap]         = useState<Record<string, { grade: string; feedback: string }>>({})
   const [savingGrade, setSavingGrade]       = useState<string | null>(null)
 
+  // Formal assessment submission review
+  const [expandedAssessment, setExpandedAssessment]       = useState<string | null>(null)
+  const [formalSubmissions, setFormalSubmissions]         = useState<Record<string, Submission[]>>({})
+  const [loadingFormalSubs, setLoadingFormalSubs]         = useState<string | null>(null)
+  const [formalGradeMap, setFormalGradeMap]               = useState<Record<string, { grade: string; feedback: string }>>({})
+  const [savingFormalGrade, setSavingFormalGrade]         = useState<string | null>(null)
+  const [downloadingFile, setDownloadingFile]             = useState<string | null>(null)
+
   // Attendance form
   const [attendDate, setAttendDate]         = useState(() => new Date().toISOString().split('T')[0])
   const [attendStatuses, setAttendStatuses] = useState<Record<string, 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED'>>({})
@@ -482,6 +491,43 @@ export default function LecturerCourseDetailPage() {
     finally { setSavingGrade(null) }
   }
 
+  async function handleExpandFormalAssessment(assessmentId: string) {
+    if (expandedAssessment === assessmentId) { setExpandedAssessment(null); return }
+    setExpandedAssessment(assessmentId)
+    if (formalSubmissions[assessmentId]) return
+    setLoadingFormalSubs(assessmentId)
+    try {
+      const subs = await submissionApi.getForAssignment(assessmentId)
+      setFormalSubmissions((prev) => ({ ...prev, [assessmentId]: subs }))
+      const map: Record<string, { grade: string; feedback: string }> = {}
+      subs.forEach((s) => { map[s.id] = { grade: s.grade !== null ? String(s.grade) : '', feedback: s.feedback ?? '' } })
+      setFormalGradeMap((prev) => ({ ...prev, ...map }))
+    } catch (e) { setError((e as Error).message) }
+    finally { setLoadingFormalSubs(null) }
+  }
+
+  async function handleFormalGrade(assessmentId: string, submissionId: string) {
+    const g = formalGradeMap[submissionId]
+    if (!g || g.grade === '') return
+    setSavingFormalGrade(submissionId)
+    try {
+      const updated = await submissionApi.grade(submissionId, Number(g.grade), g.feedback || undefined)
+      setFormalSubmissions((prev) => ({
+        ...prev,
+        [assessmentId]: (prev[assessmentId] ?? []).map((s) => s.id === submissionId ? updated : s),
+      }))
+    } catch (e) { setError((e as Error).message) }
+    finally { setSavingFormalGrade(null) }
+  }
+
+  async function handleDownloadSubmissionFile(submissionId: string, fileName: string | null) {
+    setDownloadingFile(submissionId)
+    try {
+      await submissionApi.downloadFile(submissionId, fileName)
+    } catch (e) { setError((e as Error).message) }
+    finally { setDownloadingFile(null) }
+  }
+
   async function handleSaveAttendance() {
     if (!id || students.length === 0) return
     setSavingAttend(true)
@@ -673,30 +719,112 @@ export default function LecturerCourseDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {assessments.map((a) => (
-                  <div key={a.id} className="flex items-center justify-between gap-3 p-4 bg-card border border-border rounded-xl">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
-                        <span className={cn('text-xs font-medium shrink-0', a.status === 'PUBLISHED' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400')}>
-                          {a.status}
-                        </span>
+                  <div key={a.id} className="rounded-xl border border-border bg-card">
+                    <div className="flex items-center justify-between gap-3 p-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
+                          <span className={cn('text-xs font-medium shrink-0', a.status === 'PUBLISHED' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400')}>
+                            {a.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {a.type} · {a.totalMarks} marks
+                          {a.durationMins ? ` · ${a.durationMins} min` : ''}
+                          {a.dueDate ? ` · due ${new Date(a.dueDate).toLocaleDateString()}` : ''}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {a.type} · {a.totalMarks} marks
-                        {a.durationMins ? ` · ${a.durationMins} min` : ''}
-                        {a.dueDate ? ` · due ${new Date(a.dueDate).toLocaleDateString()}` : ''}
-                      </p>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {a.type === 'ASSIGNMENT' && a.status === 'PUBLISHED' && (
+                          <button onClick={() => void handleExpandFormalAssessment(a.id)}
+                            className="text-xs text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5 transition-colors">
+                            {expandedAssessment === a.id ? 'Hide' : 'Submissions'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => void handleRemoveAssessment(a.id)}
+                          disabled={removing === a.id}
+                          className="p-1.5 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
+                          title="Remove from course"
+                        >
+                          {removing === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => void handleRemoveAssessment(a.id)}
-                      disabled={removing === a.id}
-                      className="shrink-0 p-1.5 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
-                      title="Remove from course"
-                    >
-                      {removing === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </button>
+
+                    {expandedAssessment === a.id && (
+                      <div className="border-t border-border px-4 py-3">
+                        {loadingFormalSubs === a.id ? (
+                          <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                        ) : (formalSubmissions[a.id] ?? []).length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center py-4">No submissions yet</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {(formalSubmissions[a.id] ?? []).map((sub) => {
+                              const g = formalGradeMap[sub.id] ?? { grade: '', feedback: '' }
+                              const hasFile = !!(sub.fileKey || sub.fileUrl)
+                              return (
+                                <div key={sub.id} className="rounded-lg border border-border p-3 space-y-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
+                                        {sub.studentId.charAt(0).toUpperCase()}
+                                      </div>
+                                      <p className="text-sm font-medium text-foreground">{sub.studentId}</p>
+                                      <span className={cn('text-xs font-medium', sub.status === 'GRADED' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground')}>
+                                        {sub.status}
+                                      </span>
+                                    </div>
+                                    {sub.grade !== null && (
+                                      <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                                        {sub.grade}{a.totalMarks ? `/${a.totalMarks}` : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {sub.content && <p className="text-xs text-muted-foreground line-clamp-3">{sub.content}</p>}
+                                  {hasFile && (
+                                    <button
+                                      onClick={() => void handleDownloadSubmissionFile(sub.id, sub.fileName)}
+                                      disabled={downloadingFile === sub.id}
+                                      className="flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5 transition-colors disabled:opacity-50"
+                                    >
+                                      {downloadingFile === sub.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+                                      {sub.fileName ?? 'Download file'}
+                                    </button>
+                                  )}
+                                  {sub.submittedAt && <p className="text-xs text-muted-foreground">Submitted {new Date(sub.submittedAt).toLocaleString()}</p>}
+                                  {(sub.status === 'SUBMITTED' || sub.status === 'LATE') && (
+                                    <div className="flex gap-2 items-end">
+                                      <div className="flex-1">
+                                        <input type="number" value={g.grade} min={0} max={a.totalMarks ?? undefined}
+                                          onChange={(e) => setFormalGradeMap((prev) => ({ ...prev, [sub.id]: { ...g, grade: e.target.value } }))}
+                                          placeholder={`Grade${a.totalMarks ? ` / ${a.totalMarks}` : ''}`}
+                                          className="w-full border border-input rounded-lg px-2 py-1.5 text-xs bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                        />
+                                      </div>
+                                      <div className="flex-[2]">
+                                        <input value={g.feedback}
+                                          onChange={(e) => setFormalGradeMap((prev) => ({ ...prev, [sub.id]: { ...g, feedback: e.target.value } }))}
+                                          placeholder="Feedback (optional)"
+                                          className="w-full border border-input rounded-lg px-2 py-1.5 text-xs bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                        />
+                                      </div>
+                                      <button onClick={() => void handleFormalGrade(a.id, sub.id)} disabled={savingFormalGrade === sub.id || g.grade === ''}
+                                        className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-2 py-1.5 rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0">
+                                        {savingFormalGrade === sub.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                        Grade
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

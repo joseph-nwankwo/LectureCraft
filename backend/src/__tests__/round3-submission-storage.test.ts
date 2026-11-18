@@ -189,7 +189,7 @@ describe('Finding 2: authorizeAndGetDownloadUrl — access control', () => {
 
     const result = await submissionService.authorizeAndGetDownloadUrl('sub-1', 'student-1', 'STUDENT', null)
     expect('url' in result).toBe(true)
-    expect(mockGenerateSignedUrl).toHaveBeenCalledWith('submissions/abc.pdf', expect.any(Number))
+    expect(mockGenerateSignedUrl).toHaveBeenCalledWith('submissions/abc.pdf', expect.any(Number), 'report.pdf')
   })
 
   it('blocks a student from downloading another student\'s file', async () => {

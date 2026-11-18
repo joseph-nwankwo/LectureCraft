@@ -263,7 +263,7 @@ export const submissionService = {
 
     if (submission.fileKey) {
       if (!isR2Configured()) throw AppError.internal('Storage not configured')
-      const url = await generateSignedDownloadUrl(submission.fileKey, SUBMISSION_SIGNED_URL_TTL)
+      const url = await generateSignedDownloadUrl(submission.fileKey, SUBMISSION_SIGNED_URL_TTL, submission.fileName)
       return { url, fileName: submission.fileName }
     }
 

@@ -111,8 +111,20 @@ export async function deleteFromR2(urlOrKey: string): Promise<void> {
 
 // ── Signed download URL (private objects) ─────────────────────────────────────
 
-export async function generateSignedDownloadUrl(key: string, expiresInSeconds = 600): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key })
+export async function generateSignedDownloadUrl(
+  key: string,
+  expiresInSeconds = 600,
+  fileName?: string | null,
+): Promise<string> {
+  const disposition = fileName
+    ? `attachment; filename="${fileName.replace(/"/g, '_')}"`
+    : 'attachment'
+  const command = new GetObjectCommand({
+    Bucket: S3_BUCKET,
+    Key: key,
+    ResponseContentDisposition: disposition,
+    ResponseContentType: 'application/octet-stream',
+  })
   return getSignedUrl(s3Client, command, { expiresIn: expiresInSeconds })
 }
 
@@ -158,10 +170,24 @@ const SUBMISSION_MAGIC: Record<string, SubmissionMagicCheck[]> = {
 
 export function validateSubmissionMagicBytes(buffer: Buffer, mimeType: string): boolean {
   if (mimeType === 'text/plain') {
-    // text/plain has no standard magic bytes; validate that the content looks
-    // like text: no null bytes (which indicate binary content in disguise).
+    // text/plain: must be valid UTF-8 and must not contain binary-like sequences.
+    // Reject null bytes, BOM-free non-UTF-8 sequences, and C0 control chars
+    // other than the three that appear in legitimate plain text (TAB, LF, CR).
+    try {
+      const text = buffer.toString('utf8')
+      // After round-tripping through utf8, any invalid byte sequence becomes U+FFFD
+      if (Buffer.byteLength(text, 'utf8') !== buffer.length) return false
+      if (text.includes('�')) return false
+    } catch {
+      return false
+    }
     for (let i = 0; i < buffer.length; i++) {
-      if (buffer[i] === 0x00) return false
+      const b = buffer[i]!
+      if (b === 0x00) return false           // null byte
+      // Reject C0 control chars except TAB (0x09), LF (0x0A), CR (0x0D)
+      if (b < 0x20 && b !== 0x09 && b !== 0x0a && b !== 0x0d) return false
+      // Reject DEL (0x7F)
+      if (b === 0x7f) return false
     }
     return true
   }
