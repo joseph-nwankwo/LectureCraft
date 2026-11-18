@@ -186,7 +186,7 @@ export const assessmentService = {
   },
 
   async stats(userId: string, institutionId: string | null) {
-    const where = { OR: [{ createdBy: userId }, { institutionId }] }
+    const where = { institutionId, OR: [{ createdBy: userId }, { status: 'PUBLISHED' as const }] }
     const [total, byType, byStatus] = await Promise.all([
       prisma.assessment.count({ where }),
       prisma.assessment.groupBy({ by: ['type'], _count: true, where }),
