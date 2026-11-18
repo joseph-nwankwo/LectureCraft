@@ -19,7 +19,7 @@ export const assessmentController = {
 
   get: asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params as { id: string }
-    const data = await assessmentService.get(id, req.user!.userId)
+    const data = await assessmentService.get(id, req.user!.userId, req.user!.institutionId ?? null)
     res.json({ status: 'success', data })
   }),
 

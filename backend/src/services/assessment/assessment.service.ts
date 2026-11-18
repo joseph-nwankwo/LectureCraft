@@ -60,9 +60,9 @@ export const assessmentService = {
     return { data, total, page, totalPages: Math.ceil(total / limit) }
   },
 
-  async get(id: string, userId: string) {
+  async get(id: string, userId: string, institutionId: string | null) {
     const a = await prisma.assessment.findFirst({
-      where: { id, OR: [{ createdBy: userId }, { status: 'PUBLISHED' }] },
+      where: { id, OR: [{ createdBy: userId }, { institutionId, status: 'PUBLISHED' }] },
       include: {
         creator: { select: { id: true, name: true } },
         course: { select: { id: true, code: true, title: true } },
