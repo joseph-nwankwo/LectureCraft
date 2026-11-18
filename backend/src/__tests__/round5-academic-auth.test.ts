@@ -19,11 +19,13 @@ process.env.CRAFT_LAUNCH_SECRET = 'test-craft-launch-secret-min-32-chars-long!'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
-const mockAssessmentFindUnique = jest.fn()
-const mockSubFindUnique        = jest.fn()
-const mockSubFindMany          = jest.fn()
-const mockSubUpdate            = jest.fn()
+const mockAssessmentFindUnique  = jest.fn()
+const mockSubFindUnique         = jest.fn()
+const mockSubFindMany           = jest.fn()
+const mockSubUpdate             = jest.fn()
 const mockCourseAssignFindFirst = jest.fn()
+const mockDeptFindFirst         = jest.fn()
+const mockFacultyFindFirst      = jest.fn()
 
 jest.mock('../config/database', () => ({
   prisma: {
@@ -35,6 +37,8 @@ jest.mock('../config/database', () => ({
     },
     courseAssignment: { findFirst: mockCourseAssignFindFirst },
     courseEnrollment: { findFirst: jest.fn().mockResolvedValue({ id: 'e1' }) },
+    department:       { findFirst: mockDeptFindFirst },
+    faculty:          { findFirst: mockFacultyFindFirst },
   },
 }))
 
@@ -69,13 +73,32 @@ describe('Round 5 — Finding 2: getAssignmentSubmissions authorization', () => 
     ).resolves.toBeDefined()
   })
 
-  it('allows a HOD from the same institution without CourseAssignment', async () => {
+  it('rejects HOD without matching department (Round 6: dept-scoped, not institution-wide)', async () => {
     mockAssessmentFindUnique.mockResolvedValue(institutionalAssessment)
+    mockDeptFindFirst.mockResolvedValue(null) // HOD of a different department
+
+    await expect(
+      submissionService.getAssignmentSubmissions('a1', 'other-hod', 'HOD', 'inst-1'),
+    ).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('allows HOD of the course\'s own department', async () => {
+    mockAssessmentFindUnique.mockResolvedValue(institutionalAssessment)
+    // Dept where the HOD leads AND the course belongs
+    mockDeptFindFirst.mockResolvedValue({ id: 'dept-1' })
     mockSubFindMany.mockResolvedValue([])
 
     await expect(
-      submissionService.getAssignmentSubmissions('a1', 'other-lecturer', 'HOD', 'inst-1'),
+      submissionService.getAssignmentSubmissions('a1', 'dept-hod', 'HOD', 'inst-1'),
     ).resolves.toBeDefined()
+
+    expect(mockDeptFindFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        hodId: 'dept-hod',
+        institutionId: 'inst-1',
+        courses: { some: { id: 'course-1' } },
+      }),
+    }))
   })
 
   it('rejects a plain LECTURER from the same institution without CourseAssignment', async () => {

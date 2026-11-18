@@ -119,8 +119,16 @@ export const messageService = {
   async edit(messageId: string, userId: string, content: string) {
     const message = await prisma.message.findUnique({ where: { id: messageId } })
     if (!message) throw AppError.notFound('Message')
-    if (message.senderId !== userId) throw AppError.forbidden('Can only edit your own messages')
     if (message.deleted) throw AppError.badRequest('Cannot edit a deleted message')
+
+    // Require current membership in the message's conversation — a removed member
+    // must not be able to edit messages even if they were the original sender.
+    const member = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: message.conversationId, userId } },
+    })
+    if (!member) throw AppError.forbidden('Not a member of this conversation')
+
+    if (message.senderId !== userId) throw AppError.forbidden('Can only edit your own messages')
 
     return prisma.message.update({
       where: { id: messageId },
@@ -132,6 +140,14 @@ export const messageService = {
   async delete(messageId: string, userId: string) {
     const message = await prisma.message.findUnique({ where: { id: messageId } })
     if (!message) throw AppError.notFound('Message')
+
+    // Require current membership — a removed member must not be able to delete
+    // their old messages from a conversation they no longer belong to.
+    const member = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: message.conversationId, userId } },
+    })
+    if (!member) throw AppError.forbidden('Not a member of this conversation')
+
     if (message.senderId !== userId) throw AppError.forbidden('Can only delete your own messages')
 
     return prisma.message.update({
@@ -169,6 +185,16 @@ export const messageService = {
       where: { conversationId_userId: { conversationId, userId } },
     })
     if (!member) throw AppError.forbidden()
+
+    // Verify the message belongs to the stated conversation — prevents pinning a
+    // message from an arbitrary conversation by supplying a different conversationId.
+    const msg = await prisma.message.findUnique({
+      where: { id: messageId },
+      select: { conversationId: true },
+    })
+    if (!msg || msg.conversationId !== conversationId) {
+      throw AppError.notFound('Message not found in this conversation')
+    }
 
     const message = await prisma.message.update({
       where: { id: messageId },

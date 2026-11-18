@@ -108,10 +108,20 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
 
     // ── Conversation rooms ─────────────────────────────────────────
     socket.on('conversation:join', async ({ conversationId }: { conversationId: string }) => {
+      // Fetch member row + conversation institution in one query so a stale
+      // cross-institution membership row cannot grant room access.
       const member = await prisma.conversationMember.findUnique({
         where: { conversationId_userId: { conversationId, userId } },
+        include: { conversation: { select: { institutionId: true } } },
       }).catch(() => null)
       if (!member) {
+        socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
+        return
+      }
+      // Authoritative institution check: reject if the conversation's institution
+      // doesn't match the caller's — prevents legacy cross-institution rows.
+      if (institutionId && member.conversation?.institutionId &&
+          member.conversation.institutionId !== institutionId) {
         socket.emit('error', { code: 'NOT_MEMBER', message: 'Not a member of this conversation' })
         return
       }

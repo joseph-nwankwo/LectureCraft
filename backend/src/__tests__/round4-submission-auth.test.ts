@@ -86,11 +86,11 @@ describe('Finding 2: grade() authorization', () => {
     ).resolves.toBeDefined()
   })
 
-  it('allows same-institution staff who is not the creator', async () => {
+  it('allows same-institution UNIVERSITY_ADMIN who is not the creator', async () => {
     mockFindUniqueSubmission.mockResolvedValue(makeSub())
     mockUpdateSubmission.mockResolvedValue(makeSub({ grade: 70, status: 'GRADED' }))
     await expect(
-      submissionService.grade('sub-1', 'head-of-dept', 'HOD', 'inst-1', 70)
+      submissionService.grade('sub-1', 'admin-user', 'UNIVERSITY_ADMIN', 'inst-1', 70)
     ).resolves.toBeDefined()
   })
 })

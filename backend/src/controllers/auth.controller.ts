@@ -366,7 +366,16 @@ export const authController = {
         throw new AppError('Single sign-on is temporarily unavailable', 503)
       }
     } else {
-      // Legacy / dev path: token from URL query param
+      // Legacy / dev path: token from URL query param.
+      // Explicitly blocked in production — the token would appear in Nginx access
+      // logs and browser history. Set PORTAL_TOKEN_URL + PORTAL_SERVICE_SECRET to
+      // enable the secure server-to-server exchange path.
+      if (process.env.NODE_ENV === 'production') {
+        throw new AppError(
+          'URL-based launch token is not permitted in production — configure PORTAL_TOKEN_URL and PORTAL_SERVICE_SECRET',
+          503,
+        )
+      }
       const tokenFromUrl = req.query.token as string | undefined
       if (!tokenFromUrl) throw AppError.badRequest('Missing launch token')
       token = tokenFromUrl

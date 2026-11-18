@@ -146,6 +146,25 @@ export const envSchema = baseEnvSchema.superRefine((cfg, ctx) => {
       })
     }
   }
+  // Production SSO security: the URL-based token fallback is a dev-only path.
+  // Both portal secrets must be set in production so the secure server-to-server
+  // token exchange is used and launch JWTs never appear in Nginx access logs.
+  if (cfg.NODE_ENV === 'production') {
+    if (!cfg.PORTAL_TOKEN_URL) {
+      ctx.addIssue({
+        code:    z.ZodIssueCode.custom,
+        path:    ['PORTAL_TOKEN_URL'],
+        message: 'PORTAL_TOKEN_URL is required in production — set to the portal SSO token exchange endpoint',
+      })
+    }
+    if (!cfg.PORTAL_SERVICE_SECRET) {
+      ctx.addIssue({
+        code:    z.ZodIssueCode.custom,
+        path:    ['PORTAL_SERVICE_SECRET'],
+        message: 'PORTAL_SERVICE_SECRET is required in production — shared secret for portal↔backend service calls',
+      })
+    }
+  }
 })
 
 const parsed = envSchema.safeParse(process.env)

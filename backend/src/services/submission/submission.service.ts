@@ -351,12 +351,18 @@ export const submissionService = {
 }
 
 // ── Academic authorization helper ──────────────────────────────────────────────
-// Verifies that `actorId` may perform `operation` on assessments owned by the
-// given assessment record.  Three tiers:
-//   1. Assessment creator → always allowed.
-//   2. Institutional admin role (HOD / DEAN / etc.) in the same institution → allowed.
-//   3. Regular lecturer with a CourseAssignment for the assessment's course → allowed.
-// All other callers are rejected (fail closed).
+// Three-tier authorization. Fail closed for all other callers.
+//
+// Tier 1 — creator: allowed when still in the same institution as the assessment
+//   (or when the assessment has no institutionId — personal/course-only scope).
+//   A creator who has since moved to a different institution loses this privilege.
+// Tier 2a — institution-wide admin (UNIVERSITY_ADMIN, ADMINISTRATOR): allowed
+//   for any assessment in their institution.
+// Tier 2b — HOD / DEPARTMENT_HEAD: allowed only for assessments whose course
+//   belongs to their department (not institution-wide).
+// Tier 2c — DEAN: allowed only for assessments whose course's department belongs
+//   to their faculty (not institution-wide).
+// Tier 3 — regular lecturer: must hold a CourseAssignment for the course.
 async function assertAssessmentAccess(
   assessment: { createdBy: string; courseId: string | null; institutionId: string | null },
   actorId: string,
@@ -364,15 +370,50 @@ async function assertAssessmentAccess(
   actorInstitutionId: string | null,
   operation: string,
 ): Promise<void> {
-  if (assessment.createdBy === actorId) return
+  // Tier 1: creator — still allowed only while in the same institution
+  if (assessment.createdBy === actorId) {
+    if (!assessment.institutionId) return          // personal: creator-only
+    if (actorInstitutionId === assessment.institutionId) return
+    // Creator moved institutions; fall through so other tiers can apply
+  }
 
-  const sameInstitution = !!assessment.institutionId && actorInstitutionId === assessment.institutionId
+  // All remaining tiers require a matching institution
+  if (!assessment.institutionId) {
+    throw AppError.forbidden(`Not authorized to ${operation} this assessment`)
+  }
+  if (actorInstitutionId !== assessment.institutionId) {
+    throw AppError.forbidden(`Not authorized to ${operation} this assessment`)
+  }
 
-  const adminRoles = new Set(['HOD', 'DEAN', 'UNIVERSITY_ADMIN', 'ADMINISTRATOR', 'DEPARTMENT_HEAD'])
-  if (adminRoles.has(actorRole) && sameInstitution) return
+  // Tier 2a: institution-wide admin roles
+  if (actorRole === 'UNIVERSITY_ADMIN' || actorRole === 'ADMINISTRATOR') return
 
-  // Regular lecturer: must be formally assigned to the assessment's course.
-  if (assessment.courseId && sameInstitution) {
+  // Tier 2b: HOD / DEPARTMENT_HEAD — scoped to their own department only
+  if ((actorRole === 'HOD' || actorRole === 'DEPARTMENT_HEAD') && assessment.courseId) {
+    const deptMatch = await prisma.department.findFirst({
+      where: {
+        hodId:        actorId,
+        institutionId: assessment.institutionId,
+        courses:      { some: { id: assessment.courseId } },
+      },
+    })
+    if (deptMatch) return
+  }
+
+  // Tier 2c: DEAN — scoped to courses whose department is in their faculty
+  if (actorRole === 'DEAN' && assessment.courseId) {
+    const facultyMatch = await prisma.faculty.findFirst({
+      where: {
+        deanId:        actorId,
+        institutionId: assessment.institutionId,
+        departments:   { some: { courses: { some: { id: assessment.courseId } } } },
+      },
+    })
+    if (facultyMatch) return
+  }
+
+  // Tier 3: regular lecturer — must hold a CourseAssignment for this course
+  if (assessment.courseId) {
     const assigned = await prisma.courseAssignment.findFirst({
       where: { lecturerId: actorId, courseId: assessment.courseId },
     })

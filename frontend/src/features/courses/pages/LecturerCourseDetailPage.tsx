@@ -1114,8 +1114,8 @@ export default function LecturerCourseDetailPage() {
                                       </span>
                                     )}
                                   </div>
-                                  {sub.submissionUrl && (
-                                    <a href={sub.submissionUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block truncate">{sub.submissionUrl}</a>
+                                  {sub.submissionUrl && /^https?:\/\//i.test(sub.submissionUrl) && (
+                                    <a href={sub.submissionUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline block truncate">View submission link</a>
                                   )}
                                   {sub.textContent && <p className="text-xs text-muted-foreground line-clamp-3">{sub.textContent}</p>}
                                   <p className="text-xs text-muted-foreground">Submitted {new Date(sub.submittedAt).toLocaleString()}</p>

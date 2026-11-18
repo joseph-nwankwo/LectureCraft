@@ -70,6 +70,9 @@ describe('Finding 7: envSchema R2 endpoint validation', () => {
       AWS_S3_ENDPOINT:       'https://account.r2.cloudflarestorage.com',
       AWS_S3_PUBLIC_URL:     'https://pub.r2.test',
       CENTRAL_ENTITLEMENT_URL: 'https://portal.prod/api/internal/entitlements/verify',
+      // Round 6: also required in production (Finding 7)
+      PORTAL_TOKEN_URL:      'https://portal.prod/api/portal/sso-token',
+      PORTAL_SERVICE_SECRET: 'test-portal-service-secret-min-32-chars!!!',
     })
 
     expect(result.success).toBe(true)

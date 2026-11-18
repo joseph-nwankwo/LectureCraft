@@ -79,8 +79,17 @@ export const workspaceController = {
     const targetUserId = req.params.userId as string
     await workspaceService.removeMember(workspaceId, req.user!.userId, targetUserId)
 
-    // Eject the removed user from all socket rooms for conversations in this
-    // workspace so they cannot receive messages after removal.
+    // Delete workspace-scoped conversation memberships from the DB first so the
+    // user cannot receive new messages even if their sockets reconnect before the
+    // socket ejection completes.  Only conversations tied to this workspace are
+    // affected — independent (non-workspace) conversations are left untouched.
+    await prisma.conversationMember.deleteMany({
+      where: {
+        userId: targetUserId,
+        conversation: { workspaceId },
+      },
+    })
+
     const io = getGatewayIo()
     if (io) {
       const wsConvs = await prisma.conversation.findMany({
@@ -90,6 +99,10 @@ export const workspaceController = {
       for (const conv of wsConvs) {
         ejectUserFromConversation(io, targetUserId, conv.id)
       }
+      // Also eject from the workspace room so the user stops receiving workspace
+      // events (e.g. workspace:activity) immediately.
+      io.in(`user:${targetUserId}`).socketsLeave(`workspace:${workspaceId}`)
+      io.to(`user:${targetUserId}`).emit('workspace:removed', { workspaceId })
     }
 
     res.json({ success: true, message: 'Member removed' })

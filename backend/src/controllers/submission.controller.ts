@@ -106,6 +106,7 @@ export const submissionController = {
       if (!fs.existsSync(result.localPath)) throw AppError.notFound('File not found on disk')
       const fileName = result.fileName ?? path.basename(result.localPath)
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+      res.setHeader('X-Content-Type-Options', 'nosniff')
       return res.sendFile(result.localPath)
     }
 
