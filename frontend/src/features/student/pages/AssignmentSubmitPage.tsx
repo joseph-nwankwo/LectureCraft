@@ -136,19 +136,19 @@ export default function AssignmentSubmitPage() {
       <section className="rounded-lg border border-border bg-card p-5 shadow-card" aria-labelledby="submission-heading">
         <h2 id="submission-heading" className="mb-3 text-sm font-semibold text-foreground">Your Submission</h2>
 
-        {/* Existing file — download via authenticated endpoint, never via public fileUrl */}
+        {/* Existing file — download via authenticated API call (Bearer token required) */}
         {(sub?.fileKey || sub?.fileUrl) && !file && (
           <div className="flex items-center gap-2 mb-3 text-sm bg-muted/40 rounded-lg px-3 py-2">
             <FileText className="h-4 w-4 text-primary" />
             <span className="truncate text-foreground">{sub.fileName ?? 'Uploaded file'}</span>
             {sub.id && (
-              <a
-                href={`/api/submissions/${sub.id}/file`}
-                download={sub.fileName ?? undefined}
+              <button
+                type="button"
+                onClick={() => void submissionApi.downloadFile(sub.id, sub.fileName)}
                 className="ml-auto text-xs text-primary hover:underline shrink-0"
               >
                 Download
-              </a>
+              </button>
             )}
             {!isLocked && (
               <button onClick={() => fileRef.current?.click()} className="ml-2 text-xs text-primary hover:underline shrink-0">
@@ -198,9 +198,13 @@ export default function AssignmentSubmitPage() {
               <p>
                 File submitted:{' '}
                 {sub?.id && (sub?.fileKey || sub?.fileUrl) ? (
-                  <a href={`/api/submissions/${sub.id}/file`} download={sub.fileName ?? undefined} className="text-primary hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => void submissionApi.downloadFile(sub.id, sub.fileName)}
+                    className="text-primary hover:underline"
+                  >
                     {sub.fileName ?? 'Download file'}
-                  </a>
+                  </button>
                 ) : (
                   sub?.fileName ?? 'See uploaded file'
                 )}

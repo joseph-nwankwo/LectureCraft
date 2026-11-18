@@ -40,6 +40,14 @@ function checkRateLimit(socketId: string): boolean {
 // Typing state: conversationId -> Map<userId, timeout>
 const typingTimers = new Map<string, Map<string, ReturnType<typeof setTimeout>>>()
 
+// Module-level reference so non-gateway code can eject users without needing
+// to thread the io instance through the call chain.
+let _gatewayIo: SocketServer | null = null
+
+export function getGatewayIo(): SocketServer | null {
+  return _gatewayIo
+}
+
 export function createSocketGateway(httpServer: HTTPServer): SocketServer {
   const io = new SocketServer(httpServer, {
     cors: { origin: env.FRONTEND_URL ?? '*', credentials: true },
@@ -336,6 +344,7 @@ export function createSocketGateway(httpServer: HTTPServer): SocketServer {
   // test environments, eliminating the "worker process failed to exit" warning.
   setInterval(() => presenceService.sweepStale().catch(() => null), 2 * 60 * 1000).unref()
 
+  _gatewayIo = io
   return io
 }
 

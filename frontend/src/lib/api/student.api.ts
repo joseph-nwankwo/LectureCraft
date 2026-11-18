@@ -105,6 +105,22 @@ export const submissionApi = {
 
   returnSubmission: (submissionId: string, feedback: string) =>
     apiClient.patch<{ data: Submission }>(`/submissions/${submissionId}/return`, { feedback }).then((r) => r.data.data),
+
+  /** Authenticated file download — triggers a browser Save-As dialog. */
+  downloadFile: async (submissionId: string, fileName?: string | null): Promise<void> => {
+    const res = await apiClient.get<Blob>(`/submissions/${submissionId}/file`, {
+      responseType: 'blob',
+    })
+    const blob = res.data
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName ?? 'submission'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
 }
 
 // ── Student dashboard ─────────────────────────────────────────────────────────

@@ -57,25 +57,31 @@ export const submissionController = {
   // Lecturer: grade a submission
   grade: asyncHandler(async (req: Request, res: Response) => {
     const graderId            = req.user!.userId
+    const graderRole          = req.user!.role
     const graderInstitutionId = req.user!.institutionId ?? null
     const submissionId        = String(req.params.id)
     const { grade, feedback } = req.body as { grade: number; feedback?: string }
 
     if (grade === undefined) throw AppError.badRequest('grade is required')
 
-    const data = await submissionService.grade(submissionId, graderId, graderInstitutionId, Number(grade), feedback)
+    const data = await submissionService.grade(
+      submissionId, graderId, graderRole, graderInstitutionId, Number(grade), feedback,
+    )
     res.json({ status: 'success', data })
   }),
 
   // Lecturer: return submission with feedback (no grade)
   returnSubmission: asyncHandler(async (req: Request, res: Response) => {
     const actorId            = req.user!.userId
+    const actorRole          = req.user!.role
     const actorInstitutionId = req.user!.institutionId ?? null
     const submissionId       = String(req.params.id)
     const { feedback }       = req.body as { feedback: string }
     if (!feedback) throw AppError.badRequest('feedback is required')
 
-    const data = await submissionService.returnSubmission(submissionId, actorId, actorInstitutionId, feedback)
+    const data = await submissionService.returnSubmission(
+      submissionId, actorId, actorRole, actorInstitutionId, feedback,
+    )
     res.json({ status: 'success', data })
   }),
 

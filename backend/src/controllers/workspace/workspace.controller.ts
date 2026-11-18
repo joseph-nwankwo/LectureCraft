@@ -2,6 +2,8 @@ import type { Response } from 'express'
 import type { Request } from 'express'
 import { workspaceService } from '../../services/workspace/workspace.service'
 import { asyncHandler } from '../../utils/asyncHandler'
+import { getGatewayIo, ejectUserFromConversation } from '../../gateway/socket.gateway'
+import { prisma } from '../../config/database'
 import type { WorkspaceVisibility, WorkspaceMemberRole } from '@prisma/client'
 
 export const workspaceController = {
@@ -73,11 +75,23 @@ export const workspaceController = {
   }),
 
   removeMember: asyncHandler(async (req: Request, res: Response) => {
-    await workspaceService.removeMember(
-      req.params.id as string,
-      req.user!.userId,
-      req.params.userId as string
-    )
+    const workspaceId = req.params.id as string
+    const targetUserId = req.params.userId as string
+    await workspaceService.removeMember(workspaceId, req.user!.userId, targetUserId)
+
+    // Eject the removed user from all socket rooms for conversations in this
+    // workspace so they cannot receive messages after removal.
+    const io = getGatewayIo()
+    if (io) {
+      const wsConvs = await prisma.conversation.findMany({
+        where: { workspaceId },
+        select: { id: true },
+      })
+      for (const conv of wsConvs) {
+        ejectUserFromConversation(io, targetUserId, conv.id)
+      }
+    }
+
     res.json({ success: true, message: 'Member removed' })
   }),
 

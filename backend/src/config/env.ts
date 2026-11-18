@@ -32,6 +32,15 @@ const baseEnvSchema = z.object({
   // URL of the UAMSA Tech portal launch endpoint for this product.
   // Required for the SSO initiation flow (GET /api/auth/sso/initiate).
   PORTAL_LAUNCH_URL: z.string().url().optional(),
+  // URL of the portal's server-to-server SSO token exchange endpoint.
+  // When set together with PORTAL_SERVICE_SECRET, the portal launch JWT is
+  // retrieved via a service-to-service call rather than from the URL query
+  // parameter (which would appear in Nginx access logs).  Strongly recommended
+  // in production.  Unset: falls back to URL-based token (dev/test only).
+  PORTAL_TOKEN_URL: z.string().url().optional(),
+  // Shared secret for portal↔backend service-to-server calls.
+  // Must be ≥32 chars and must differ from all JWT / cookie secrets.
+  PORTAL_SERVICE_SECRET: z.string().min(32).optional(),
   // Optional extra CORS origins for migration windows (comma-separated absolute origins).
   // Example: ADDITIONAL_FRONTEND_URLS=https://lecturesuite.app
   // Leave unset or empty in production until DNS and TLS are confirmed.

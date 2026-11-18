@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database'
+import { AppError } from '../../utils/errors'
 
 interface LogActivityData {
   institutionId: string
@@ -51,7 +52,31 @@ export const activityService = {
     return { items, total, page, limit, pages: Math.ceil(total / limit) }
   },
 
-  async getWorkspaceFeed(workspaceId: string, opts?: { page?: number; limit?: number }) {
+  async getWorkspaceFeed(
+    workspaceId: string,
+    callerId: string,
+    callerInstitutionId: string | null,
+    opts?: { page?: number; limit?: number },
+  ) {
+    // Authorization: verify the caller may access this workspace.
+    // A workspace member (any visibility) or a user in the same institution
+    // as a PUBLIC workspace may read the activity feed.
+    const ws = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { institutionId: true, visibility: true },
+    })
+    if (!ws) throw AppError.notFound('Workspace not found')
+
+    const member = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId: callerId } },
+    })
+    if (!member) {
+      if (ws.visibility !== 'PUBLIC') throw AppError.forbidden('Access denied')
+      if (ws.institutionId && callerInstitutionId !== ws.institutionId) {
+        throw AppError.forbidden('Access denied')
+      }
+    }
+
     const page = opts?.page ?? 1
     const limit = opts?.limit ?? 20
     const skip = (page - 1) * limit

@@ -141,6 +141,18 @@ export const messageService = {
   },
 
   async react(messageId: string, userId: string, emoji: string) {
+    // Verify the message exists and the caller is a member of its conversation.
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+      select: { conversationId: true },
+    })
+    if (!message) throw AppError.notFound('Message')
+
+    const member = await prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: message.conversationId, userId } },
+    })
+    if (!member) throw AppError.forbidden('Not a member of this conversation')
+
     const existing = await prisma.messageReaction.findUnique({
       where: { messageId_userId_emoji: { messageId, userId, emoji } },
     })

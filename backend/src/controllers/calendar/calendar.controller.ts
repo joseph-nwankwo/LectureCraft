@@ -2,6 +2,7 @@ import type { Response } from 'express'
 import type { Request } from 'express'
 import { calendarService } from '../../services/calendar/calendar.service'
 import { asyncHandler } from '../../utils/asyncHandler'
+import { AppError } from '../../utils/errors'
 import type { CalendarEventType } from '@prisma/client'
 
 export const calendarController = {
@@ -35,6 +36,11 @@ export const calendarController = {
 
   get: asyncHandler(async (req: Request, res: Response) => {
     const event = await calendarService.get(req.params.id as string)
+    // Institution-scoped IDOR guard: a calendar event belongs to one institution;
+    // a user from a different institution must never see it.
+    if (event.institutionId !== req.user!.institutionId) {
+      throw AppError.forbidden('Access denied')
+    }
     res.json({ success: true, data: event })
   }),
 

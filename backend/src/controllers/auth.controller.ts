@@ -294,45 +294,82 @@ export const authController = {
   // ── SSO callback — called by portal launch redirect ───────────────────────
   // Validates a short-lived launch token issued by uamsatech.com, finds or
   // provisions the user in the craftsuite DB, issues a LectureSuite session,
-  // then redirects the browser to the frontend with the tokens in the URL.
+  // then redirects the browser to the frontend.
+  //
+  // State is ALWAYS required: the browser must have gone through ssoInitiate
+  // first (which sets the cookie and stores the state in Redis). Any request
+  // that bypasses initiate will fail here.
+  //
+  // Token sourcing (mutually exclusive):
+  //   Secure mode  (PORTAL_TOKEN_URL configured): token is never in the URL.
+  //     The portal stores it server-side and ssoCallback fetches it via a
+  //     service-to-service call using PORTAL_SERVICE_SECRET.
+  //   Legacy / dev (PORTAL_TOKEN_URL unset):  token is accepted from the URL
+  //     query parameter.  Acceptable for local development; must NOT be used
+  //     in production because the token will appear in Nginx access logs.
 
   ssoCallback: asyncHandler(async (req: Request, res: Response) => {
-    const token = req.query.token as string | undefined
-    if (!token) throw AppError.badRequest('Missing launch token')
-
-    // State-based login-CSRF protection: when PORTAL_LAUNCH_URL is configured
-    // (i.e. the ssoInitiate endpoint is in use), verify the round-trip state.
-    // The state must be in both the URL param AND the browser-bound cookie, and
-    // it must exist in Redis (proving it was issued by this server, single-use).
+    // ── State validation (always required) ────────────────────────────────
     const stateParam  = req.query.state as string | undefined
     const stateCookie = req.cookies?.[SSO_STATE_COOKIE] as string | undefined
 
-    if (env.PORTAL_LAUNCH_URL) {
-      // Initiate-based flow is active — state is required
-      if (!stateParam || !stateCookie) {
-        throw AppError.unauthorized('Missing SSO state — please start login from the application')
-      }
-      if (stateParam !== stateCookie) {
-        throw AppError.unauthorized('SSO state mismatch — possible login-CSRF attempt')
-      }
-      // Single-use: atomically retrieve and delete the state
-      let stateStored: string | null
+    if (!stateParam || !stateCookie) {
+      throw AppError.unauthorized('Missing SSO state — please start login from the application')
+    }
+    if (stateParam !== stateCookie) {
+      throw AppError.unauthorized('SSO state mismatch — possible login-CSRF attempt')
+    }
+
+    // Single-use: atomically retrieve and delete the state from Redis
+    let stateStored: string | null
+    try {
+      stateStored = await redis.getdel(`sso:state:${stateParam}`)
+    } catch (err) {
+      console.error('SSO state check unavailable (Redis):', (err as Error).message)
+      throw new AppError('Single sign-on is temporarily unavailable', 503)
+    }
+    if (!stateStored) {
+      throw AppError.unauthorized('SSO state is invalid or expired — please start login again')
+    }
+
+    // Clear the state cookie
+    res.clearCookie(SSO_STATE_COOKIE, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path:     '/api/auth/sso',
+    })
+
+    // ── Token acquisition ─────────────────────────────────────────────────
+    // Prefer server-to-server retrieval (keeps JWT off browser-visible URLs).
+    let token: string
+    if (env.PORTAL_TOKEN_URL && env.PORTAL_SERVICE_SECRET) {
+      // Secure path: fetch the launch token from the portal using the state
+      // as the retrieval key. The token was stored by the portal during the
+      // launch step and is consumed (single-use) on retrieval.
       try {
-        stateStored = await redis.getdel(`sso:state:${stateParam}`)
+        const portalRes = await fetch(
+          `${env.PORTAL_TOKEN_URL}?state=${encodeURIComponent(stateParam)}`,
+          { headers: { 'x-service-secret': env.PORTAL_SERVICE_SECRET } },
+        )
+        if (!portalRes.ok) {
+          throw new AppError('Portal token exchange failed — please try again', 503)
+        }
+        const body = await portalRes.json() as { token?: unknown }
+        if (typeof body.token !== 'string' || !body.token) {
+          throw new AppError('Invalid portal token response', 503)
+        }
+        token = body.token
       } catch (err) {
-        console.error('SSO state check unavailable (Redis):', (err as Error).message)
+        if (err instanceof AppError) throw err
+        console.error('Portal token exchange error:', (err as Error).message)
         throw new AppError('Single sign-on is temporarily unavailable', 503)
       }
-      if (!stateStored) {
-        throw AppError.unauthorized('SSO state is invalid or expired — please start login again')
-      }
-      // Clear the state cookie
-      res.clearCookie(SSO_STATE_COOKIE, {
-        httpOnly: true,
-        secure:   process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
-        path:     '/api/auth/sso',
-      })
+    } else {
+      // Legacy / dev path: token from URL query param
+      const tokenFromUrl = req.query.token as string | undefined
+      if (!tokenFromUrl) throw AppError.badRequest('Missing launch token')
+      token = tokenFromUrl
     }
 
     let payload: { sub?: unknown; email?: unknown; type?: unknown; target?: unknown; jti?: unknown; iss?: unknown; aud?: unknown; exp?: unknown }

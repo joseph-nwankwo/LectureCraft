@@ -77,7 +77,7 @@ const { prisma } = require('../config/database') as {
     userProductRole: { upsert: jest.Mock }
   }
 }
-const { redis } = require('../config/redis') as { redis: { set: jest.Mock } }
+const { redis } = require('../config/redis') as { redis: { set: jest.Mock; getdel: jest.Mock } }
 const jwtService = require('../services/auth/jwt.service') as { signAccessToken: jest.Mock; createRefreshToken: jest.Mock }
 const { authController } = require('../controllers/auth.controller')
 const { authenticate }   = require('../middleware/auth.middleware') as { authenticate: (req: Request, res: Response, next: NextFunction) => void }
@@ -100,6 +100,8 @@ beforeEach(() => {
     redisStore.add(key)
     return Promise.resolve('OK')
   })
+  // Round 5: state is always required; getdel simulates a valid stored state.
+  redis.getdel.mockResolvedValue('stored-portal-state')
   prisma.user.findUnique.mockResolvedValue(mockUser)
   prisma.user.update.mockResolvedValue(mockUser)
   prisma.userProductRole.upsert.mockResolvedValue({ id: 'role-1', userId: mockUser.id, product: PRODUCT, role: PRODUCT_ROLE })
@@ -141,7 +143,15 @@ function buildApp(): express.Application {
   return app
 }
 
-const sso = (token: string) => supertest(buildApp()).get(`/api/auth/sso?token=${encodeURIComponent(token)}`)
+// Round 5: ssoCallback now requires state (cookie + query param + Redis confirmation).
+const TEST_STATE = 'test-sso-state-fixed'
+const SSO_STATE_COOKIE = 'lc_sso_state'
+
+/** Send a valid SSO callback request (with state cookie + query param). */
+const sso = (token: string) =>
+  supertest(buildApp())
+    .get(`/api/auth/sso?token=${encodeURIComponent(token)}&state=${TEST_STATE}`)
+    .set('Cookie', `${SSO_STATE_COOKIE}=${TEST_STATE}`)
 
 // ── P0-01: launch-token verification ──────────────────────────────────────────
 
@@ -289,8 +299,15 @@ describe(`P0-01: SSO launch token verification (${PRODUCT})`, () => {
     expect(jwtService.signAccessToken).not.toHaveBeenCalled()
   })
 
-  it('rejects a request with no token', async () => {
-    expect((await supertest(buildApp()).get('/api/auth/sso')).status).toBe(400)
+  it('rejects a request with no token (state present, token absent → 400)', async () => {
+    // State must be valid for the check to reach the token-acquisition step.
+    expect(
+      (
+        await supertest(buildApp())
+          .get(`/api/auth/sso?state=${TEST_STATE}`)
+          .set('Cookie', `${SSO_STATE_COOKIE}=${TEST_STATE}`)
+      ).status,
+    ).toBe(400)
   })
 
   it('rejects a normal product API access token presented as a launch token', async () => {

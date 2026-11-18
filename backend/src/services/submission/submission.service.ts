@@ -233,28 +233,27 @@ export const submissionService = {
     })
     if (!submission) throw AppError.notFound('Submission not found')
 
-    // Authorization check:
-    // Students can only download their own submission
+    // Students may only download their own submission.
     const isStudent = callerRole === 'STUDENT'
     if (isStudent && submission.studentId !== callerId) {
       throw AppError.forbidden('Access denied')
     }
 
-    // Non-student staff must be authorized: either the assessment creator,
-    // OR in the same institution as the assessment (for admin-level access).
-    // When institutionId is null (personal/unaffiliated assessment), only the
-    // creator may access — do NOT skip the check (fail closed).
+    // Non-student staff: apply the same three-tier academic authorization check
+    // (creator / admin-in-institution / assigned-lecturer).  When institutionId
+    // is null only the creator may access — fail closed.
     if (!isStudent) {
-      const { createdBy, institutionId: assessmentInstitutionId } = submission.assessment
-      if (assessmentInstitutionId) {
-        if (callerInstitutionId !== assessmentInstitutionId) {
-          throw AppError.forbidden('Access denied')
-        }
-      } else {
-        // No institution on assessment: only the creator can access
-        if (createdBy !== callerId) {
-          throw AppError.forbidden('Access denied')
-        }
+      if (!submission.assessment.institutionId && submission.assessment.createdBy !== callerId) {
+        throw AppError.forbidden('Access denied')
+      }
+      if (submission.assessment.institutionId) {
+        await assertAssessmentAccess(
+          submission.assessment,
+          callerId,
+          callerRole,
+          callerInstitutionId,
+          'download submissions for',
+        )
       }
     }
 
@@ -291,16 +290,7 @@ export const submissionService = {
     })
     if (!assessment) throw AppError.notFound('Assignment not found')
 
-    // Authorization: creator is always allowed.
-    // Admin-level roles (HOD, dean, admin) may access if same institution.
-    const isCreator = assessment.createdBy === lecturerId
-    const adminRoles = new Set(['HOD', 'DEAN', 'UNIVERSITY_ADMIN', 'ADMINISTRATOR', 'DEPARTMENT_HEAD'])
-    const isAdmin = adminRoles.has(lecturerRole)
-    const sameInstitution = !!assessment.institutionId && lecturerInstitutionId === assessment.institutionId
-
-    if (!isCreator && !(isAdmin && sameInstitution)) {
-      throw AppError.forbidden('Not authorized to view submissions for this assessment')
-    }
+    await assertAssessmentAccess(assessment, lecturerId, lecturerRole, lecturerInstitutionId, 'view submissions for')
 
     return prisma.assignmentSubmission.findMany({
       where: { assessmentId },
@@ -314,24 +304,19 @@ export const submissionService = {
   async grade(
     submissionId: string,
     graderId: string,
+    graderRole: string,
     graderInstitutionId: string | null,
     grade: number,
     feedback?: string,
   ) {
     const sub = await prisma.assignmentSubmission.findUnique({
       where: { id: submissionId },
-      include: { assessment: { select: { totalMarks: true, createdBy: true, institutionId: true } } },
+      include: { assessment: { select: { totalMarks: true, createdBy: true, courseId: true, institutionId: true } } },
     })
     if (!sub) throw AppError.notFound('Submission not found')
     if (sub.status === 'DRAFT') throw AppError.badRequest('Cannot grade an unsubmitted draft')
 
-    // Authorization: grader must be creator, or same-institution admin
-    const { createdBy, institutionId: assessmentInstitutionId } = sub.assessment
-    const isCreator = createdBy === graderId
-    const isSameInstitution = !!assessmentInstitutionId && graderInstitutionId === assessmentInstitutionId
-    if (!isCreator && !isSameInstitution) {
-      throw AppError.forbidden('Not authorized to grade this submission')
-    }
+    await assertAssessmentAccess(sub.assessment, graderId, graderRole, graderInstitutionId, 'grade submissions for')
 
     if (grade < 0 || grade > sub.assessment.totalMarks) {
       throw AppError.badRequest(`Grade must be between 0 and ${sub.assessment.totalMarks}`)
@@ -346,26 +331,53 @@ export const submissionService = {
   async returnSubmission(
     submissionId: string,
     actorId: string,
+    actorRole: string,
     actorInstitutionId: string | null,
     feedback: string,
   ) {
     const sub = await prisma.assignmentSubmission.findUnique({
       where: { id: submissionId },
-      include: { assessment: { select: { createdBy: true, institutionId: true } } },
+      include: { assessment: { select: { createdBy: true, courseId: true, institutionId: true } } },
     })
     if (!sub) throw AppError.notFound('Submission not found')
 
-    // Authorization: actor must be creator, or same-institution admin
-    const { createdBy, institutionId: assessmentInstitutionId } = sub.assessment
-    const isCreator = createdBy === actorId
-    const isSameInstitution = !!assessmentInstitutionId && actorInstitutionId === assessmentInstitutionId
-    if (!isCreator && !isSameInstitution) {
-      throw AppError.forbidden('Not authorized to return this submission')
-    }
+    await assertAssessmentAccess(sub.assessment, actorId, actorRole, actorInstitutionId, 'return submissions for')
 
     return prisma.assignmentSubmission.update({
       where: { id: submissionId },
       data: { status: 'RETURNED', feedback },
     })
   },
+}
+
+// ── Academic authorization helper ──────────────────────────────────────────────
+// Verifies that `actorId` may perform `operation` on assessments owned by the
+// given assessment record.  Three tiers:
+//   1. Assessment creator → always allowed.
+//   2. Institutional admin role (HOD / DEAN / etc.) in the same institution → allowed.
+//   3. Regular lecturer with a CourseAssignment for the assessment's course → allowed.
+// All other callers are rejected (fail closed).
+async function assertAssessmentAccess(
+  assessment: { createdBy: string; courseId: string | null; institutionId: string | null },
+  actorId: string,
+  actorRole: string,
+  actorInstitutionId: string | null,
+  operation: string,
+): Promise<void> {
+  if (assessment.createdBy === actorId) return
+
+  const sameInstitution = !!assessment.institutionId && actorInstitutionId === assessment.institutionId
+
+  const adminRoles = new Set(['HOD', 'DEAN', 'UNIVERSITY_ADMIN', 'ADMINISTRATOR', 'DEPARTMENT_HEAD'])
+  if (adminRoles.has(actorRole) && sameInstitution) return
+
+  // Regular lecturer: must be formally assigned to the assessment's course.
+  if (assessment.courseId && sameInstitution) {
+    const assigned = await prisma.courseAssignment.findFirst({
+      where: { lecturerId: actorId, courseId: assessment.courseId },
+    })
+    if (assigned) return
+  }
+
+  throw AppError.forbidden(`Not authorized to ${operation} this assessment`)
 }

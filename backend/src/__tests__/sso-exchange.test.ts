@@ -92,6 +92,10 @@ const mockUser = { id: 'user-1', email: 'person@uamsatech.com', institutionId: n
 type RedisStore = Map<string, string>
 let redisStore: RedisStore
 
+// Round 5: ssoCallback now requires state (cookie + query param + Redis confirmation).
+const TEST_STATE = 'test-sso-state-fixed'
+const SSO_STATE_COOKIE = 'lc_sso_state'
+
 function setupRedisStore() {
   redisStore = new Map()
 
@@ -112,6 +116,9 @@ function setupRedisStore() {
     redisStore.delete(key)
     return Promise.resolve(val)
   })
+
+  // Pre-populate the SSO state so ssoCallback state validation passes in every test.
+  redisStore.set(`sso:state:${TEST_STATE}`, 'stored-portal-state')
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -148,7 +155,9 @@ async function runExchange(app = buildApp()): Promise<{
   exRes:   supertest.Response
 }> {
   const agent  = supertest.agent(app)
-  const ssoRes = await agent.get(`/api/auth/sso?token=${buildLaunchToken()}`)
+  const ssoRes = await agent
+    .get(`/api/auth/sso?token=${buildLaunchToken()}&state=${TEST_STATE}`)
+    .set('Cookie', `${SSO_STATE_COOKIE}=${TEST_STATE}`)
   const exRes  = await agent.post('/api/auth/sso/exchange')
   return { ssoRes, exRes }
 }
@@ -174,7 +183,9 @@ beforeEach(() => {
 
 describe('CVE-LS-003: SSO redirect must not expose code in URL', () => {
   it('redirects to /auth/sso with no code or tokens in the URL — code bound to HttpOnly cookie', async () => {
-    const res = await request().get(`/api/auth/sso?token=${buildLaunchToken()}`)
+    const res = await request()
+      .get(`/api/auth/sso?token=${buildLaunchToken()}&state=${TEST_STATE}`)
+      .set('Cookie', `${SSO_STATE_COOKIE}=${TEST_STATE}`)
     expect(res.status).toBe(302)
     // Code is in an HttpOnly cookie, never the URL
     expect(res.headers.location).toBe(`${FRONTEND_URL}/auth/sso`)
@@ -188,7 +199,9 @@ describe('CVE-LS-003: SSO redirect must not expose code in URL', () => {
   })
 
   it('the authorization code stored in the cookie is 64 hex characters (256 bits of entropy)', async () => {
-    const res = await request().get(`/api/auth/sso?token=${buildLaunchToken()}`)
+    const res = await request()
+      .get(`/api/auth/sso?token=${buildLaunchToken()}&state=${TEST_STATE}`)
+      .set('Cookie', `${SSO_STATE_COOKIE}=${TEST_STATE}`)
     const cookies = ([] as string[]).concat(res.headers['set-cookie'] ?? [])
     const pending = cookies.find(c => c.startsWith('lc_sso_pending='))
     const code = pending?.split(';')[0].replace('lc_sso_pending=', '') ?? ''
@@ -196,7 +209,9 @@ describe('CVE-LS-003: SSO redirect must not expose code in URL', () => {
   })
 
   it('stores the code in Redis with ≤60 s TTL under sso:code: prefix', async () => {
-    await request().get(`/api/auth/sso?token=${buildLaunchToken()}`)
+    await request()
+      .get(`/api/auth/sso?token=${buildLaunchToken()}&state=${TEST_STATE}`)
+      .set('Cookie', `${SSO_STATE_COOKIE}=${TEST_STATE}`)
     const codeCall = redis.set.mock.calls.find(([k]: [string]) => k.startsWith('sso:code:'))
     expect(codeCall).toBeDefined()
     expect(codeCall?.[3]).toBeLessThanOrEqual(60)
@@ -234,7 +249,9 @@ describe('CVE-LS-003: POST /api/auth/sso/exchange', () => {
   it('rejects a second exchange attempt on the same session (single-use cookie + code)', async () => {
     const app   = buildApp()
     const agent = supertest.agent(app)
-    await agent.get(`/api/auth/sso?token=${buildLaunchToken()}`)
+    await agent
+      .get(`/api/auth/sso?token=${buildLaunchToken()}&state=${TEST_STATE}`)
+      .set('Cookie', `${SSO_STATE_COOKIE}=${TEST_STATE}`)
     await agent.post('/api/auth/sso/exchange')       // first exchange — clears cookie
     const second = await agent.post('/api/auth/sso/exchange')  // no cookie remains
 

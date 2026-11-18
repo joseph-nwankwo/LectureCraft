@@ -21,12 +21,13 @@ process.env.CENTRAL_ENTITLEMENT_URL            = 'http://portal.test/api/interna
 process.env.CENTRAL_ENTITLEMENT_SERVICE_SECRET = 'test-central-entitlement-service-secret-0123'
 process.env.FRONTEND_URL       = 'http://localhost:3001'
 
-const mockFindUniqueAssessment = jest.fn()
-const mockFindFirstEnrollment  = jest.fn()
-const mockFindUniqueSubmission = jest.fn()
-const mockUpdateSubmission     = jest.fn()
-const mockCreateSubmission     = jest.fn()
-const mockFindManySubmissions  = jest.fn()
+const mockFindUniqueAssessment    = jest.fn()
+const mockFindFirstEnrollment     = jest.fn()
+const mockFindUniqueSubmission    = jest.fn()
+const mockUpdateSubmission        = jest.fn()
+const mockCreateSubmission        = jest.fn()
+const mockFindManySubmissions     = jest.fn()
+const mockFindFirstCourseAssignment = jest.fn()
 
 jest.mock('../config/database', () => ({
   prisma: {
@@ -38,6 +39,7 @@ jest.mock('../config/database', () => ({
       create:     mockCreateSubmission,
       findMany:   mockFindManySubmissions,
     },
+    courseAssignment: { findFirst: mockFindFirstCourseAssignment },
   },
 }))
 
@@ -71,7 +73,7 @@ describe('Finding 2: grade() authorization', () => {
   it('rejects a grader who is not the creator and from a different institution', async () => {
     mockFindUniqueSubmission.mockResolvedValue(makeSub())
     await expect(
-      submissionService.grade('sub-1', 'other-lecturer', 'inst-2', 50)
+      submissionService.grade('sub-1', 'other-lecturer', 'LECTURER', 'inst-2', 50)
     ).rejects.toMatchObject({ statusCode: 403 })
     expect(mockUpdateSubmission).not.toHaveBeenCalled()
   })
@@ -80,7 +82,7 @@ describe('Finding 2: grade() authorization', () => {
     mockFindUniqueSubmission.mockResolvedValue(makeSub())
     mockUpdateSubmission.mockResolvedValue(makeSub({ grade: 80, status: 'GRADED' }))
     await expect(
-      submissionService.grade('sub-1', 'lecturer-1', 'inst-1', 80)
+      submissionService.grade('sub-1', 'lecturer-1', 'LECTURER', 'inst-1', 80)
     ).resolves.toBeDefined()
   })
 
@@ -88,7 +90,7 @@ describe('Finding 2: grade() authorization', () => {
     mockFindUniqueSubmission.mockResolvedValue(makeSub())
     mockUpdateSubmission.mockResolvedValue(makeSub({ grade: 70, status: 'GRADED' }))
     await expect(
-      submissionService.grade('sub-1', 'head-of-dept', 'inst-1', 70)
+      submissionService.grade('sub-1', 'head-of-dept', 'HOD', 'inst-1', 70)
     ).resolves.toBeDefined()
   })
 })
@@ -103,7 +105,7 @@ describe('Finding 2: returnSubmission() authorization', () => {
       id: 'sub-1', assessment: baseAssessment,
     })
     await expect(
-      submissionService.returnSubmission('sub-1', 'outsider', 'inst-2', 'Please revise')
+      submissionService.returnSubmission('sub-1', 'outsider', 'LECTURER', 'inst-2', 'Please revise')
     ).rejects.toMatchObject({ statusCode: 403 })
     expect(mockUpdateSubmission).not.toHaveBeenCalled()
   })
@@ -114,7 +116,7 @@ describe('Finding 2: returnSubmission() authorization', () => {
     })
     mockUpdateSubmission.mockResolvedValue({ id: 'sub-1', status: 'RETURNED' })
     await expect(
-      submissionService.returnSubmission('sub-1', 'lecturer-1', 'inst-1', 'Please revise')
+      submissionService.returnSubmission('sub-1', 'lecturer-1', 'LECTURER', 'inst-1', 'Please revise')
     ).resolves.toBeDefined()
   })
 })
@@ -156,6 +158,7 @@ describe('Finding 2: getAssignmentSubmissions() authorization', () => {
     mockFindUniqueAssessment.mockResolvedValue({
       id: 'assess-1', createdBy: 'lecturer-1', courseId: 'c-1', institutionId: 'inst-1',
     })
+    mockFindFirstCourseAssignment.mockResolvedValue(null) // no CourseAssignment → 403
     await expect(
       submissionService.getAssignmentSubmissions('assess-1', 'other-lecturer', 'LECTURER', 'inst-1')
     ).rejects.toMatchObject({ statusCode: 403 })
