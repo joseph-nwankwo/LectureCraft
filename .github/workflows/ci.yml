@@ -186,3 +186,70 @@ jobs:
       - name: Frontend audit
         working-directory: frontend
         run: npm audit --audit-level=high
+
+  # ── Backend Docker Image Verification ────────────────────────────────────────
+  docker-verify:
+    name: Backend — Docker Image Verification
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          load: true
+          tags: lecturesuite-backend:ci-verify
+
+      - name: Verify Chromium executable exists
+        run: docker run --rm lecturesuite-backend:ci-verify which chromium-browser
+
+      - name: Print Chromium version
+        run: docker run --rm lecturesuite-backend:ci-verify /usr/bin/chromium-browser --version
+
+      - name: Verify runtime user is appuser
+        run: test "$(docker run --rm --user appuser lecturesuite-backend:ci-verify whoami)" = "appuser"
+
+      - name: Verify Chromium launches headlessly as appuser
+        run: |
+          docker run --rm --user appuser lecturesuite-backend:ci-verify \
+            /usr/bin/chromium-browser \
+            --headless --no-sandbox --disable-setuid-sandbox \
+            --dump-dom about:blank > /dev/null 2>&1
+          echo "PASS: Chromium launched and exited cleanly"
+
+      - name: generatePDF() smoke test
+        run: |
+          docker run --rm --user appuser lecturesuite-backend:ci-verify node -e "
+          const { generatePDF } = require('./dist/services/document/pdf.service');
+          generatePDF('<html><body><h1>OPS-02 smoke</h1></body></html>')
+            .then(buf => {
+              if (!Buffer.isBuffer(buf)) {
+                console.error('FAIL: result is not a Buffer');
+                process.exit(1);
+              }
+              if (buf.length <= 5) {
+                console.error('FAIL: buffer too short: ' + buf.length);
+                process.exit(1);
+              }
+              const sig = buf.subarray(0, 5).toString('ascii');
+              if (sig !== '%PDF-') {
+                console.error('FAIL: unexpected PDF signature: ' + sig);
+                process.exit(1);
+              }
+              console.log('PASS: PDF generated, bytes=' + buf.length);
+            })
+            .catch(err => {
+              console.error('FAIL:', err.message);
+              process.exit(1);
+            });
+          "

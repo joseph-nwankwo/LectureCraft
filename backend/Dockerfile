@@ -5,6 +5,8 @@ FROM node:20-alpine AS deps-all
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY package*.json ./
+# Skip Puppeteer's browser download — the runner uses system Chromium (Alpine musl-compatible)
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -14,6 +16,8 @@ FROM node:20-alpine AS deps-prod
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY package*.json ./
+# Skip Puppeteer's browser download — the runner uses system Chromium (Alpine musl-compatible)
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm ci --omit=dev
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -36,6 +40,24 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000
+
+# Chromium and runtime libraries for Puppeteer PDF generation.
+# Alpine's musl-compiled Chromium is used in preference to Puppeteer's bundled
+# glibc binary, which does not run reliably on musl-based images.
+# Package list covers TLS, font shaping, font rendering and trusted CA roots.
+# Note: /usr/bin/chromium-browser is the Alpine `chromium` apk install path;
+# verify with `docker run --rm <image> which chromium-browser` after build.
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Tell Puppeteer to use system Chromium; skip any residual download attempts.
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
