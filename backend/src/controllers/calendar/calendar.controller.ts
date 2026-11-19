@@ -45,12 +45,12 @@ export const calendarController = {
   }),
 
   update: asyncHandler(async (req: Request, res: Response) => {
-    const event = await calendarService.update(req.params.id as string, req.user!.userId, req.body)
+    const event = await calendarService.update(req.params.id as string, req.user!.userId, req.user!.institutionId ?? null, req.body)
     res.json({ success: true, data: event })
   }),
 
   delete: asyncHandler(async (req: Request, res: Response) => {
-    await calendarService.delete(req.params.id as string, req.user!.userId)
+    await calendarService.delete(req.params.id as string, req.user!.userId, req.user!.institutionId ?? null)
     res.json({ success: true })
   }),
 

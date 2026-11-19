@@ -52,6 +52,12 @@ export const calendarService = {
     const from = opts?.from ?? new Date()
     const to = opts?.to ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
+    const memberships = await prisma.workspaceMember.findMany({
+      where: { userId },
+      select: { workspaceId: true },
+    })
+    const memberWorkspaceIds = memberships.map((m) => m.workspaceId)
+
     return prisma.calendarEvent.findMany({
       where: {
         institutionId,
@@ -61,7 +67,7 @@ export const calendarService = {
         OR: [
           { creatorId: userId },
           { attendees: { array_contains: userId } },
-          { workspaceId: { not: null } },
+          ...(memberWorkspaceIds.length > 0 ? [{ workspaceId: { in: memberWorkspaceIds } }] : []),
         ],
       },
       orderBy: { startAt: 'asc' },
@@ -78,9 +84,10 @@ export const calendarService = {
     return event
   },
 
-  async update(id: string, userId: string, data: Partial<CreateEventData>) {
+  async update(id: string, userId: string, institutionId: string | null, data: Partial<CreateEventData>) {
     const event = await prisma.calendarEvent.findUnique({ where: { id } })
     if (!event) throw AppError.notFound('Calendar event')
+    if (event.institutionId !== institutionId) throw AppError.forbidden('Access denied')
     if (event.creatorId !== userId) throw AppError.forbidden('Only the creator can update this event')
 
     return prisma.calendarEvent.update({
@@ -100,9 +107,10 @@ export const calendarService = {
     })
   },
 
-  async delete(id: string, userId: string) {
+  async delete(id: string, userId: string, institutionId: string | null) {
     const event = await prisma.calendarEvent.findUnique({ where: { id } })
     if (!event) throw AppError.notFound('Calendar event')
+    if (event.institutionId !== institutionId) throw AppError.forbidden('Access denied')
     if (event.creatorId !== userId) throw AppError.forbidden('Only the creator can delete this event')
     return prisma.calendarEvent.delete({ where: { id } })
   },
