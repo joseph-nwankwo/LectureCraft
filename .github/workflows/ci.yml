@@ -185,6 +185,7 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Frontend audit
+        if: always()
         working-directory: frontend
         run: npm audit --audit-level=high
 
